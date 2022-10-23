@@ -1,0 +1,3 @@
+# Уровень логирования: FATAL, ERROR, WARN, INFO, DEBUG
+LogLevel = "WARN"
+AdminID = 123
