@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE disciplines
+CREATE TABLE IF NOT EXISTS disciplines
 (
     id      serial PRIMARY KEY ,
     name    varchar not null
