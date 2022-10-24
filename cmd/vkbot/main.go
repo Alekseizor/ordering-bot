@@ -4,19 +4,20 @@ import (
 	"context"
 	"github.com/Alekseizor/ordering-bot/internal/app/config"
 	"github.com/Alekseizor/ordering-bot/internal/pkg/app"
+	log "github.com/sirupsen/logrus"
 	"os"
 )
 
 func init() {
 	// Log as JSON instead of the default ASCII formatter.
-	SetFormatter(&JSONFormatter{})
+	log.SetFormatter(&log.JSONFormatter{})
 
 	// Output to stdout instead of the default stderr
 	// Can be any io.Writer, see below for File example
-	SetOutput(os.Stdout)
+	log.SetOutput(os.Stdout)
 
 	// Only log the warning severity or above.
-	SetLevel(DebugLevel)
+	log.SetLevel(log.DebugLevel)
 }
 
 func main() {
@@ -24,7 +25,7 @@ func main() {
 
 	cfg, err := config.NewConfig(ctx)
 	if err != nil {
-		WithError(err).Error("cant create new cfg")
+		log.WithError(err).Error("cant create new cfg")
 
 		os.Exit(2)
 	}
@@ -33,14 +34,14 @@ func main() {
 	// Создание приложения
 	application, err := app.NewApp(ctx)
 	if err != nil {
-		WithContext(ctx).WithError(err).Error("app creating error")
+		log.WithContext(ctx).WithError(err).Error("app creating error")
 
 		os.Exit(2)
 	}
 	// Запуск приложения
 	err = application.Run(ctx)
 	if err != nil {
-		WithError(err).Error("app startup error")
+		log.WithError(err).Error("app startup error")
 
 		os.Exit(2)
 	}

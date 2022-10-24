@@ -6,8 +6,8 @@ CREATE TABLE disciplines
     name    varchar not null
 );
 
-INSERT INTO disciplines
-VALUES (1,'MATLAB');
+INSERT INTO disciplines (name)
+VALUES ('MATLAB');
 INSERT INTO disciplines (name)
 VALUES ('MS Office(Word, Excel, Access)');
 INSERT INTO disciplines (name)
