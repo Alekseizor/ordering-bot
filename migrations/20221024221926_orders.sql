@@ -2,13 +2,13 @@
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS orders
 (
-    id                   uuid,
+    id                   serial PRIMARY KEY,
     customer_vk_id       int                      NOT NULL,
-    customers_comment    text NOT NULL DEFAULT(''),
+    customers_comment    text,
     executor_vk_id       int,
     discipline_id        int  NOT NULL,
-    date_finish          timestamp with time zone NOT NULL,
-    time_finish          timestamp with time zone NOT NULL,
+    date_finish          timestamp with time zone,
+    time_finish          timestamp with time zone,
     price                bigint CHECK ( price > 0 ),
     payout_admin         bool,
     payout_executors     bool
@@ -17,5 +17,5 @@ CREATE TABLE IF NOT EXISTS orders
 
 -- +goose Down
 -- +goose StatementBegin
-SELECT 'down SQL query';
+DROP TABLE IF EXISTS orders;
 -- +goose StatementEnd

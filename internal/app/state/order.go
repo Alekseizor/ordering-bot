@@ -1,10 +1,12 @@
 package state
 
 import (
+	"github.com/Alekseizor/ordering-bot/internal/app/conversion"
 	"github.com/SevereCloud/vksdk/v2/api/params"
 	"github.com/SevereCloud/vksdk/v2/object"
 	log "github.com/sirupsen/logrus"
 	"strconv"
+	"time"
 )
 
 //////////////////////////////////////////////////////////
@@ -62,28 +64,16 @@ func (state ChoiceDiscipline) Process(ctc ChatContext, messageText string) State
 			state.PreviewProcess(ctc)
 			return &ChoiceDiscipline{}
 		} else {
-			_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders() VALUES ($1, $2)", ctc.User.VkID, ctc.User.State)
+			_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders(customer_vk_id,discipline_id) VALUES ($1, $2)", ctc.User.VkID, messageInt)
 			if err != nil {
-				log.Println("мы тут")
 				log.WithError(err).Error("cant set user")
-				return
+				state.PreviewProcess(ctc)
+				return &ChoiceDiscipline{}
 			}
+			ChoiceDate{}.PreviewProcess(ctc)
+			return &ChoiceDate{}
 		}
 
-	}
-
-	if messageText == "Математика" {
-		//ChoiceDiscipline{}.PreviewProcess(ctc)
-		return &ChoiceDiscipline{}
-	} else if messageText == "Физика" {
-		//StartState{}.PreviewProcess(ctc)
-		return &ChoiceDiscipline{}
-	} else if messageText == "Назад в главное меню" {
-		StartState{}.PreviewProcess(ctc)
-		return &StartState{}
-	} else {
-		state.PreviewProcess(ctc)
-		return &ChoiceDiscipline{}
 	}
 }
 
@@ -114,4 +104,50 @@ func (state ChoiceDiscipline) PreviewProcess(ctc ChatContext) {
 
 func (state ChoiceDiscipline) Name() string {
 	return "ChoiceDiscipline"
+}
+
+//////////////////////////////////////////////////////////
+type ChoiceDate struct {
+}
+
+func (state ChoiceDate) Process(ctc ChatContext, messageText string) State {
+	if messageText == "Выбор дисциплины" {
+		ChoiceDiscipline{}.PreviewProcess(ctc)
+		return &ChoiceDiscipline{}
+	} else if messageText == "Назад в главное меню" {
+		StartState{}.PreviewProcess(ctc)
+		return &StartState{}
+	} else {
+		state.PreviewProcess(ctc)
+		return &ChoiceDate{}
+	}
+}
+
+func (state ChoiceDate) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.Message("Выберите дату выполнения заказа")
+	b.PeerID(ctc.User.VkID)
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Сегодня", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Завтра", "", "secondary")
+	//взял московское время
+	today := time.Now().UTC().Add(time.Hour * 3)
+	today = today.AddDate(0, 0, 1) //сместили дату на завтра
+	for i := 0; i < 5; i++ {
+		today = today.AddDate(0, 0, 1) //смещаем поэтапно на каждый из пяти дней
+		k.AddRow()
+		k.AddTextButton(conversion.GetDateStr(today), "", "secondary")
+	}
+	b.Keyboard(k)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+func (state ChoiceDate) Name() string {
+	return "ChoiceDate"
 }

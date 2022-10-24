@@ -1,21 +1,14 @@
 package conversion
 
 import (
+	"strconv"
 	"time"
 )
 
 const DateFormatLayout = "02.01"
 
-func GetUpcomingDates(count int) []string {
-	upcomingDates := make([]string, count, count)
-	t := time.Now()
-
-	t = t.Add(time.Hour * 48)
-
-	for i := 0; i < count; i++ {
-		upcomingDates[i] = t.Format(DateFormatLayout)
-		t = t.Add(time.Hour * 24)
-	}
-
-	return upcomingDates
+func GetDateStr(today time.Time) string {
+	WeekDayIntToStr := map[int]string{0: "Вс", 1: "Пн", 2: "Вт", 3: "Ср", 4: "Чт", 5: "Пт", 6: "Сб"}
+	todayStr := strconv.Itoa(today.Day()) + "." + strconv.Itoa(int(today.Month())) + " " + WeekDayIntToStr[int(today.Weekday())]
+	return todayStr
 }

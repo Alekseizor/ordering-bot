@@ -1,15 +1,11 @@
 package ds
 
-import (
-	"golang.org/x/crypto/bcrypt"
-)
-
 type User struct {
 	VkID  int    `db:"vk_id"`
 	State string `db:"state"`
 }
 
-//Generate a salted hash for the input string
+/*//Generate a salted hash for the input string
 func (c *Hash) Generate(s string) (string, error) {
 	saltedBytes := []byte(s)
 	hashedBytes, err := bcrypt.GenerateFromPassword(saltedBytes, bcrypt.DefaultCost)
@@ -27,3 +23,4 @@ func (c *Hash) Compare(hash string, s string) error {
 	existing := []byte(hash)
 	return bcrypt.CompareHashAndPassword(existing, incoming)
 }
+*/

@@ -134,6 +134,7 @@ func (a *App) Run(ctx context.Context) error {
 			(&(state.StartState{})).Name():       &(state.StartState{}),
 			(&(state.OrderState{})).Name():       &(state.OrderState{}),
 			(&(state.ChoiceDiscipline{})).Name(): &(state.ChoiceDiscipline{}),
+			(&(state.ChoiceDate{})).Name():       &(state.ChoiceDate{}),
 		}
 		ctc := state.ChatContext{
 			User: BotUser,

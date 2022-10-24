@@ -17,15 +17,7 @@ VALUES ('Аналитическая геометрия');
 INSERT INTO disciplines (name)
 VALUES ('Английский язык');
 INSERT INTO disciplines (name)
-VALUES ('Архитектура');
-INSERT INTO disciplines (name)
-VALUES ('Бухгалтерский учет и анализ');
-INSERT INTO disciplines (name)
-VALUES ('Водоснабжение и водоотведение');
-INSERT INTO disciplines (name)
-VALUES ('Геодезия');
-INSERT INTO disciplines (name)
-VALUES ('Геология');
+VALUES ('Детали машин');
 INSERT INTO disciplines (name)
 VALUES ('Дискретная математика');
 INSERT INTO disciplines (name)
@@ -34,8 +26,6 @@ INSERT INTO disciplines (name)
 VALUES ('Интегралы и дифференциальные уравнения');
 INSERT INTO disciplines (name)
 VALUES ('Информатика');
-INSERT INTO disciplines (name)
-VALUES ('Искусствоведение');
 INSERT INTO disciplines (name)
 VALUES ('История');
 INSERT INTO disciplines (name)
@@ -51,31 +41,41 @@ VALUES ('Математический анализ');
 INSERT INTO disciplines (name)
 VALUES ('Материаловедение');
 INSERT INTO disciplines (name)
+VALUES ('Менеджмент');
+INSERT INTO disciplines (name)
 VALUES ('Метрология');
 INSERT INTO disciplines (name)
-VALUES ('Механика грунтов');
-INSERT INTO disciplines (name)
-VALUES ('Механика жидкости и газа (Гидравлика)');
+VALUES ('Механика жидкости и газа');
 INSERT INTO disciplines (name)
 VALUES ('Начертательная геометрия');
+INSERT INTO disciplines (name)
+VALUES ('Организация производства');
+INSERT INTO disciplines (name)
+VALUES ('Основы конструирования приборов');
+INSERT INTO disciplines (name)
+VALUES ('Основы теории цепей');
+INSERT INTO disciplines (name)
+VALUES ('Основы технологии приборостроения');
 INSERT INTO disciplines (name)
 VALUES ('Политология');
 INSERT INTO disciplines (name)
 VALUES ('Правоведение');
 INSERT INTO disciplines (name)
+VALUES ('Практика');
+INSERT INTO disciplines (name)
+VALUES ('Прикладная статистика');
+INSERT INTO disciplines (name)
 VALUES ('Психология');
+INSERT INTO disciplines (name)
+VALUES ('Системный анализ и принятие решений');
 INSERT INTO disciplines (name)
 VALUES ('Сопротивление материалов');
 INSERT INTO disciplines (name)
 VALUES ('Социология');
 INSERT INTO disciplines (name)
-VALUES ('Строительная механика');
-INSERT INTO disciplines (name)
-VALUES ('Строительные материалы');
-INSERT INTO disciplines (name)
-VALUES ('Строительные машины');
-INSERT INTO disciplines (name)
 VALUES ('Теоретическая механика');
+INSERT INTO disciplines (name)
+VALUES ('Теоретические основы электротехники');
 INSERT INTO disciplines (name)
 VALUES ('Теория вероятностей');
 INSERT INTO disciplines (name)
@@ -83,30 +83,36 @@ VALUES ('Теория механизмов и машин');
 INSERT INTO disciplines (name)
 VALUES ('Теория поля');
 INSERT INTO disciplines (name)
-VALUES ('Теория функции комплексных переменных');
+VALUES ('Теория функции комплексных переменных и операционное исчисление');
 INSERT INTO disciplines (name)
 VALUES ('Теория функции нескольких переменных');
 INSERT INTO disciplines (name)
-VALUES ('Технология процессов в строительстве');
+VALUES ('Термодинамика');
+INSERT INTO disciplines (name)
+VALUES ('Технология конструкционных материалов');
 INSERT INTO disciplines (name)
 VALUES ('Уравнения математической физики');
 INSERT INTO disciplines (name)
 VALUES ('Физика');
 INSERT INTO disciplines (name)
+VALUES ('Физкультура');
+INSERT INTO disciplines (name)
 VALUES ('Философия');
+INSERT INTO disciplines (name)
+VALUES ('Финансирование инновационной деятельности');
 INSERT INTO disciplines (name)
 VALUES ('Химия');
 INSERT INTO disciplines (name)
+VALUES ('Цифровые устройства и микропроцессоры');
+INSERT INTO disciplines (name)
 VALUES ('Экономика');
 INSERT INTO disciplines (name)
-VALUES ('Электродинамика и распространение радиоволн');
+VALUES ('Электроника');
 INSERT INTO disciplines (name)
 VALUES ('Электротехника');
-INSERT INTO disciplines (name)
-VALUES ('Детали машин');
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-SELECT 'down SQL query';
+DROP TABLE IF EXISTS disciplines;
 -- +goose StatementEnd
