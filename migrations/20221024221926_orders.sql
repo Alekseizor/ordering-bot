@@ -11,8 +11,7 @@ CREATE TABLE IF NOT EXISTS orders
     time_finish          timestamp with time zone NOT NULL,
     price                bigint CHECK ( price > 0 ),
     payout_admin         bool,
-    payout_executors     bool,
-    status               int                      NOT NULL DEFAULT (1)
+    payout_executors     bool
 );
 -- +goose StatementEnd
 

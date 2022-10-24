@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS executors
 (
     vk_id          int CHECK ( vk_id >= 0 ) UNIQUE,
     disciplines_id int[],
-    prepayment     int CHECK ( prepayment >= 0 and prepayment<=100),
+    proportion     int CHECK ( proportion >= 0 and proportion<=100),
     rating         float NOT NULL DEFAULT(5)
 );
 -- +goose StatementEnd
