@@ -107,16 +107,123 @@ func (state ChoiceDiscipline) Name() string {
 }
 
 //////////////////////////////////////////////////////////
+const (
+	layout = "04.07.2022"
+)
+
 type ChoiceDate struct {
 }
 
 func (state ChoiceDate) Process(ctc ChatContext, messageText string) State {
-	if messageText == "Выбор дисциплины" {
+	if messageText == "Предыдущий шаг" {
 		ChoiceDiscipline{}.PreviewProcess(ctc)
 		return &ChoiceDiscipline{}
-	} else if messageText == "Назад в главное меню" {
-		StartState{}.PreviewProcess(ctc)
-		return &StartState{}
+	} else if messageText == "Свой вариант" {
+		b := params.NewMessagesSendBuilder()
+		b.RandomID(0)
+		b.Message("Введите время выполнения заказа в формате ДД.ММ.ГГГГ")
+		b.PeerID(ctc.User.VkID)
+		k := &object.MessagesKeyboard{}
+		k.AddRow()
+		k.AddTextButton("Предыдущий шаг", "", "secondary")
+		_, err := ctc.Vk.MessagesSend(b.Params)
+		if err != nil {
+			log.Println("Failed to get record")
+			log.Error(err)
+		}
+		state.PreviewProcess(ctc)
+		return &ChoiceDate{}
+	} else if messageText == "Сегодня" || messageText == "Сейчас" {
+		_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders(date_finish) VALUES ($1)", time.Now().UTC().Add(time.Hour*3))
+		if err != nil {
+			log.WithError(err).Error("cant set date_finish")
+			state.PreviewProcess(ctc)
+			return &ChoiceDate{}
+		}
+		ChoiceTime{}.PreviewProcess(ctc)
+		return &ChoiceTime{}
+	} else if messageText == "Завтра" {
+		_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders(date_finish) VALUES ($1)", time.Now().UTC().Add(time.Hour*3).AddDate(0, 0, 1))
+		if err != nil {
+			log.WithError(err).Error("cant set date_finish")
+			state.PreviewProcess(ctc)
+			return &ChoiceDate{}
+		}
+		ChoiceTime{}.PreviewProcess(ctc)
+		return &ChoiceTime{}
+	} else if messageText == "Через две недели" {
+		_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders(date_finish) VALUES ($1)", time.Now().UTC().Add(time.Hour*3).AddDate(0, 0, 14))
+		if err != nil {
+			log.WithError(err).Error("cant set date_finish")
+			state.PreviewProcess(ctc)
+			return &ChoiceDate{}
+		}
+		ChoiceTime{}.PreviewProcess(ctc)
+		return &ChoiceTime{}
+	} else if messageText[2] == '.' && messageText[5] == ' ' {
+		day, err := strconv.Atoi(messageText[0:2])
+		if err != nil {
+			log.WithError(err).Error("the string is not formatted per day")
+			state.PreviewProcess(ctc)
+			return &ChoiceDate{}
+		}
+		month, err := strconv.Atoi(messageText[3:5])
+		if err != nil {
+			log.WithError(err).Error("the string is not formatted per month")
+			state.PreviewProcess(ctc)
+			return &ChoiceDate{}
+		}
+		weekday := messageText[6:8]
+		today := time.Now().UTC().Add(time.Hour * 3)
+		today = today.AddDate(0, 0, 1) //сместили дату на завтра
+		for i := 0; i < 5; i++ {
+			today = today.AddDate(0, 0, 1) //смещаем поэтапно на каждый из пяти дней
+			if day == today.Day() && month == int(today.Month()) && weekday == conversion.GetWeekDayStr(today) {
+				_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders(date_finish) VALUES ($1)", today)
+				if err != nil {
+					log.WithError(err).Error("cant set date_finish")
+					state.PreviewProcess(ctc)
+					return &ChoiceDate{}
+				}
+				ChoiceTime{}.PreviewProcess(ctc)
+				return &ChoiceTime{}
+			}
+		}
+		state.PreviewProcess(ctc)
+		return &ChoiceDate{}
+	} else if messageText[2] == '.' && messageText[5] == '.' {
+		date, err := time.Parse(layout, messageText)
+		if err != nil {
+			log.WithError(err).Error("the string is not formatted per date")
+			state.PreviewProcess(ctc)
+			return &ChoiceDate{}
+		}
+		if date.After(time.Now().UTC().Add(time.Hour*3).AddDate(0, 0, -1)) {
+			log.Println(time.Now().UTC().Add(time.Hour*3).AddDate(0, 0, -1))
+			_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders(date_finish) VALUES ($1)", date)
+			if err != nil {
+				log.WithError(err).Error("cant set date_finish")
+				state.PreviewProcess(ctc)
+				return &ChoiceDate{}
+			}
+			ChoiceTime{}.PreviewProcess(ctc)
+			return &ChoiceTime{}
+		} else {
+			b := params.NewMessagesSendBuilder()
+			b.RandomID(0)
+			b.Message("Попробуйте ввести время выполнения заказа в формате ДД.ММ.ГГГГ")
+			b.PeerID(ctc.User.VkID)
+			k := &object.MessagesKeyboard{}
+			k.AddRow()
+			k.AddTextButton("Предыдущий шаг", "", "secondary")
+			_, err := ctc.Vk.MessagesSend(b.Params)
+			if err != nil {
+				log.Println("Failed to get record")
+				log.Error(err)
+			}
+			state.PreviewProcess(ctc)
+			return &ChoiceDate{}
+		}
 	} else {
 		state.PreviewProcess(ctc)
 		return &ChoiceDate{}
@@ -141,6 +248,14 @@ func (state ChoiceDate) PreviewProcess(ctc ChatContext) {
 		k.AddRow()
 		k.AddTextButton(conversion.GetDateStr(today), "", "secondary")
 	}
+	k.AddRow()
+	k.AddTextButton("Через две недели", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Сейчас", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Свой вариант", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Предыдущий шаг", "", "secondary")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -150,4 +265,65 @@ func (state ChoiceDate) PreviewProcess(ctc ChatContext) {
 }
 func (state ChoiceDate) Name() string {
 	return "ChoiceDate"
+}
+
+//////////////////////////////////////////////////////////
+type ChoiceTime struct {
+}
+
+func (state ChoiceTime) Process(ctc ChatContext, messageText string) State {
+	if messageText == "Сегодня" {
+		_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders(date_finish) VALUES ($1)", time.Now().UTC().Add(time.Hour*3).AddDate(0, 0, 1))
+		if err != nil {
+			log.WithError(err).Error("cant set date_finish")
+			state.PreviewProcess(ctc)
+			return &ChoiceDate{}
+		}
+		ChoiceTime{}.PreviewProcess(ctc)
+		return &ChoiceTime{}
+	} else if messageText == "Назад в главное меню" {
+		StartState{}.PreviewProcess(ctc)
+		return &StartState{}
+	} else {
+		state.PreviewProcess(ctc)
+		return &ChoiceDate{}
+	}
+}
+
+func (state ChoiceTime) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.Message("Выберите дату выполнения заказа")
+	b.PeerID(ctc.User.VkID)
+	k := &object.MessagesKeyboard{}
+	twoDate:=&object.MessagesKeyboardButtonAction{}
+	twoDate.Type="text"
+	k.Buttons[]
+	k.AddRow()
+	payload:={"type":"text"}
+	k.AddTextButton("Сегодня", payload, "secondary")
+	k.AddRow()
+	k.AddTextButton("Завтра", "", "secondary")
+	//взял московское время
+	today := time.Now().UTC().Add(time.Hour * 3)
+	today = today.AddDate(0, 0, 1) //сместили дату на завтра
+	for i := 0; i < 5; i++ {
+		today = today.AddDate(0, 0, 1) //смещаем поэтапно на каждый из пяти дней
+		k.AddRow()
+		k.AddTextButton("", "")
+		k.AddTextButton(conversion.GetDateStr(today), "", "secondary")
+	}
+	k.AddRow()
+	k.AddTextButton("Через две недели", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Сейчас", "", "secondary")
+	b.Keyboard(k)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+func (state ChoiceTime) Name() string {
+	return "ChoiceTime"
 }

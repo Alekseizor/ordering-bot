@@ -8,7 +8,6 @@ CREATE TABLE IF NOT EXISTS orders
     executor_vk_id       int,
     discipline_id        int  NOT NULL,
     date_finish          timestamp with time zone,
-    time_finish          timestamp with time zone,
     price                bigint CHECK ( price > 0 ),
     payout_admin         bool,
     payout_executors     bool
