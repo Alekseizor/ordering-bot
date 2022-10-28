@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS orders
     customers_comment    text,
     executor_vk_id       int,
     discipline_id        int  NOT NULL,
+    date_order          timestamp with time zone,
     date_finish          timestamp with time zone,
     price                bigint CHECK ( price > 0 ),
     payout_admin         bool,

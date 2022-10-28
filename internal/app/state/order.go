@@ -1,12 +1,15 @@
 package state
 
 import (
+	"database/sql"
 	"github.com/Alekseizor/ordering-bot/internal/app/conversion"
+	"github.com/Alekseizor/ordering-bot/internal/app/repository"
 	"github.com/SevereCloud/vksdk/v2/api/params"
 	"github.com/SevereCloud/vksdk/v2/object"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"time"
+	"unicode/utf8"
 )
 
 //////////////////////////////////////////////////////////
@@ -64,7 +67,7 @@ func (state ChoiceDiscipline) Process(ctc ChatContext, messageText string) State
 			state.PreviewProcess(ctc)
 			return &ChoiceDiscipline{}
 		} else {
-			_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders(customer_vk_id,discipline_id) VALUES ($1, $2)", ctc.User.VkID, messageInt)
+			_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders(customer_vk_id,discipline_id,date_order) VALUES ($1, $2,$3)", ctc.User.VkID, messageInt, time.Now().UTC().Add(time.Hour*3))
 			if err != nil {
 				log.WithError(err).Error("cant set user")
 				state.PreviewProcess(ctc)
@@ -108,13 +111,18 @@ func (state ChoiceDiscipline) Name() string {
 
 //////////////////////////////////////////////////////////
 const (
-	layout = "04.07.2022"
+	layout = "02.01.2006"
 )
 
 type ChoiceDate struct {
 }
 
 func (state ChoiceDate) Process(ctc ChatContext, messageText string) State {
+	ID, err := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
+	if err != nil {
+		state.PreviewProcess(ctc)
+		return &ChoiceDate{}
+	}
 	if messageText == "Предыдущий шаг" {
 		ChoiceDiscipline{}.PreviewProcess(ctc)
 		return &ChoiceDiscipline{}
@@ -126,15 +134,16 @@ func (state ChoiceDate) Process(ctc ChatContext, messageText string) State {
 		k := &object.MessagesKeyboard{}
 		k.AddRow()
 		k.AddTextButton("Предыдущий шаг", "", "secondary")
+		b.Keyboard(k)
 		_, err := ctc.Vk.MessagesSend(b.Params)
 		if err != nil {
 			log.Println("Failed to get record")
 			log.Error(err)
 		}
-		state.PreviewProcess(ctc)
+		//state.PreviewProcess(ctc)
 		return &ChoiceDate{}
 	} else if messageText == "Сегодня" || messageText == "Сейчас" {
-		_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders(date_finish) VALUES ($1)", time.Now().UTC().Add(time.Hour*3))
+		_, err := ctc.Db.ExecContext(*ctc.Ctx, "UPDATE orders SET date_finish =$1 WHERE id=$2", time.Now().UTC().Add(time.Hour*3), ID)
 		if err != nil {
 			log.WithError(err).Error("cant set date_finish")
 			state.PreviewProcess(ctc)
@@ -143,7 +152,7 @@ func (state ChoiceDate) Process(ctc ChatContext, messageText string) State {
 		ChoiceTime{}.PreviewProcess(ctc)
 		return &ChoiceTime{}
 	} else if messageText == "Завтра" {
-		_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders(date_finish) VALUES ($1)", time.Now().UTC().Add(time.Hour*3).AddDate(0, 0, 1))
+		_, err := ctc.Db.ExecContext(*ctc.Ctx, "UPDATE orders SET date_finish =$1 WHERE id=$2", time.Now().UTC().Add(time.Hour*3).AddDate(0, 0, 1), ID)
 		if err != nil {
 			log.WithError(err).Error("cant set date_finish")
 			state.PreviewProcess(ctc)
@@ -151,8 +160,8 @@ func (state ChoiceDate) Process(ctc ChatContext, messageText string) State {
 		}
 		ChoiceTime{}.PreviewProcess(ctc)
 		return &ChoiceTime{}
-	} else if messageText == "Через две недели" {
-		_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders(date_finish) VALUES ($1)", time.Now().UTC().Add(time.Hour*3).AddDate(0, 0, 14))
+	} else if messageText == "Через 2 недели" {
+		_, err := ctc.Db.ExecContext(*ctc.Ctx, "UPDATE orders SET date_finish =$1 WHERE id=$2", time.Now().UTC().Add(time.Hour*3).AddDate(0, 0, 14), ID)
 		if err != nil {
 			log.WithError(err).Error("cant set date_finish")
 			state.PreviewProcess(ctc)
@@ -160,26 +169,48 @@ func (state ChoiceDate) Process(ctc ChatContext, messageText string) State {
 		}
 		ChoiceTime{}.PreviewProcess(ctc)
 		return &ChoiceTime{}
-	} else if messageText[2] == '.' && messageText[5] == ' ' {
-		day, err := strconv.Atoi(messageText[0:2])
-		if err != nil {
-			log.WithError(err).Error("the string is not formatted per day")
+	} else if utf8.RuneCountInString(messageText) > 7 {
+		if messageText[2] == '.' && messageText[5] == ' ' {
+			day, err := strconv.Atoi(messageText[0:2])
+			if err != nil {
+				log.WithError(err).Error("the string is not formatted per day")
+				state.PreviewProcess(ctc)
+				return &ChoiceDate{}
+			}
+			month, err := strconv.Atoi(messageText[3:5])
+			if err != nil {
+				log.WithError(err).Error("the string is not formatted per month")
+				state.PreviewProcess(ctc)
+				return &ChoiceDate{}
+			}
+			weekday := messageText[6:]
+			log.Println(day, month, weekday)
+			today := time.Now().UTC().Add(time.Hour * 3)
+			today = today.AddDate(0, 0, 1) //сместили дату на завтра
+			for i := 0; i < 8; i++ {
+				today = today.AddDate(0, 0, 1) //смещаем поэтапно на каждый из пяти дней
+				if day == today.Day() && month == int(today.Month()) && weekday == conversion.GetWeekDayStr(today) {
+					_, err := ctc.Db.ExecContext(*ctc.Ctx, "UPDATE orders SET date_finish =$1 WHERE id=$2", today, ID)
+					if err != nil {
+						log.WithError(err).Error("cant set date_finish")
+						state.PreviewProcess(ctc)
+						return &ChoiceDate{}
+					}
+					ChoiceTime{}.PreviewProcess(ctc)
+					return &ChoiceTime{}
+				}
+			}
 			state.PreviewProcess(ctc)
 			return &ChoiceDate{}
-		}
-		month, err := strconv.Atoi(messageText[3:5])
-		if err != nil {
-			log.WithError(err).Error("the string is not formatted per month")
-			state.PreviewProcess(ctc)
-			return &ChoiceDate{}
-		}
-		weekday := messageText[6:8]
-		today := time.Now().UTC().Add(time.Hour * 3)
-		today = today.AddDate(0, 0, 1) //сместили дату на завтра
-		for i := 0; i < 5; i++ {
-			today = today.AddDate(0, 0, 1) //смещаем поэтапно на каждый из пяти дней
-			if day == today.Day() && month == int(today.Month()) && weekday == conversion.GetWeekDayStr(today) {
-				_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders(date_finish) VALUES ($1)", today)
+		} else if messageText[2] == '.' && messageText[5] == '.' {
+			date, err := time.Parse(layout, messageText)
+			if err != nil {
+				log.WithError(err).Error("the string is not formatted per date")
+				state.PreviewProcess(ctc)
+				return &ChoiceDate{}
+			}
+			if date.After(time.Now().UTC().Add(time.Hour*3).AddDate(0, 0, -1)) {
+				_, err := ctc.Db.ExecContext(*ctc.Ctx, "UPDATE orders SET date_finish =$1 WHERE id=$2", date, ID)
 				if err != nil {
 					log.WithError(err).Error("cant set date_finish")
 					state.PreviewProcess(ctc)
@@ -187,40 +218,22 @@ func (state ChoiceDate) Process(ctc ChatContext, messageText string) State {
 				}
 				ChoiceTime{}.PreviewProcess(ctc)
 				return &ChoiceTime{}
-			}
-		}
-		state.PreviewProcess(ctc)
-		return &ChoiceDate{}
-	} else if messageText[2] == '.' && messageText[5] == '.' {
-		date, err := time.Parse(layout, messageText)
-		if err != nil {
-			log.WithError(err).Error("the string is not formatted per date")
-			state.PreviewProcess(ctc)
-			return &ChoiceDate{}
-		}
-		if date.After(time.Now().UTC().Add(time.Hour*3).AddDate(0, 0, -1)) {
-			log.Println(time.Now().UTC().Add(time.Hour*3).AddDate(0, 0, -1))
-			_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders(date_finish) VALUES ($1)", date)
-			if err != nil {
-				log.WithError(err).Error("cant set date_finish")
-				state.PreviewProcess(ctc)
+			} else {
+				b := params.NewMessagesSendBuilder()
+				b.RandomID(0)
+				b.Message("Попробуйте ввести время выполнения заказа в формате ДД.ММ.ГГГГ")
+				b.PeerID(ctc.User.VkID)
+				k := &object.MessagesKeyboard{}
+				k.AddRow()
+				k.AddTextButton("Предыдущий шаг", "", "secondary")
+				_, err := ctc.Vk.MessagesSend(b.Params)
+				if err != nil {
+					log.Println("Failed to get record")
+					log.Error(err)
+				}
 				return &ChoiceDate{}
 			}
-			ChoiceTime{}.PreviewProcess(ctc)
-			return &ChoiceTime{}
 		} else {
-			b := params.NewMessagesSendBuilder()
-			b.RandomID(0)
-			b.Message("Попробуйте ввести время выполнения заказа в формате ДД.ММ.ГГГГ")
-			b.PeerID(ctc.User.VkID)
-			k := &object.MessagesKeyboard{}
-			k.AddRow()
-			k.AddTextButton("Предыдущий шаг", "", "secondary")
-			_, err := ctc.Vk.MessagesSend(b.Params)
-			if err != nil {
-				log.Println("Failed to get record")
-				log.Error(err)
-			}
 			state.PreviewProcess(ctc)
 			return &ChoiceDate{}
 		}
@@ -238,21 +251,21 @@ func (state ChoiceDate) PreviewProcess(ctc ChatContext) {
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
 	k.AddTextButton("Сегодня", "", "secondary")
-	k.AddRow()
 	k.AddTextButton("Завтра", "", "secondary")
 	//взял московское время
 	today := time.Now().UTC().Add(time.Hour * 3)
 	today = today.AddDate(0, 0, 1) //сместили дату на завтра
-	for i := 0; i < 5; i++ {
+	k.AddRow()
+	for i := 0; i < 8; i++ {
+		if i == 4 {
+			k.AddRow()
+		}
 		today = today.AddDate(0, 0, 1) //смещаем поэтапно на каждый из пяти дней
-		k.AddRow()
 		k.AddTextButton(conversion.GetDateStr(today), "", "secondary")
 	}
 	k.AddRow()
-	k.AddTextButton("Через две недели", "", "secondary")
-	k.AddRow()
+	k.AddTextButton("Через 2 недели", "", "secondary")
 	k.AddTextButton("Сейчас", "", "secondary")
-	k.AddRow()
 	k.AddTextButton("Свой вариант", "", "secondary")
 	k.AddRow()
 	k.AddTextButton("Предыдущий шаг", "", "secondary")
@@ -272,51 +285,68 @@ type ChoiceTime struct {
 }
 
 func (state ChoiceTime) Process(ctc ChatContext, messageText string) State {
-	if messageText == "Сегодня" {
-		_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders(date_finish) VALUES ($1)", time.Now().UTC().Add(time.Hour*3).AddDate(0, 0, 1))
-		if err != nil {
-			log.WithError(err).Error("cant set date_finish")
-			state.PreviewProcess(ctc)
-			return &ChoiceDate{}
-		}
-		ChoiceTime{}.PreviewProcess(ctc)
+	ID, err := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
+	if err != nil {
+		state.PreviewProcess(ctc)
 		return &ChoiceTime{}
-	} else if messageText == "Назад в главное меню" {
-		StartState{}.PreviewProcess(ctc)
-		return &StartState{}
+	}
+	if messageText == "Вернуться к выбору дня" {
+		ChoiceDate{}.PreviewProcess(ctc)
+		return &ChoiceDate{}
+	} else if utf8.RuneCountInString(messageText) > 4 {
+		if messageText[2] == ':' {
+			hour, err := strconv.Atoi(messageText[0:2])
+			if err != nil || hour < 0 || hour > 23 {
+				log.Println("z")
+				log.WithError(err).Error("the string is not formatted per day")
+				state.PreviewProcess(ctc)
+				return &ChoiceTime{}
+			}
+			minute, err := strconv.Atoi(messageText[3:5])
+			if err != nil || minute < 0 || minute > 60 {
+				log.WithError(err).Error("the string is not formatted per month")
+				state.PreviewProcess(ctc)
+				return &ChoiceTime{}
+			}
+			var date time.Time
+			err = ctc.Db.QueryRow("SELECT date_finish from orders WHERE customer_vk_id =$1 ORDER BY id DESC LIMIT 1", ctc.User.VkID).Scan(&date)
+			if err != nil {
+				if err == sql.ErrNoRows {
+					log.Println("Row with customer_vk_id unknown")
+				} else {
+					log.Println("Couldn't find the line with the order")
+				}
+				log.Error(err)
+				state.PreviewProcess(ctc)
+				return &ChoiceTime{}
+			}
+			date = time.Date(date.Year(), date.Month(), date.Day(), hour, minute, 0, 0, time.UTC)
+			_, err = ctc.Db.ExecContext(*ctc.Ctx, "UPDATE orders SET date_finish =$1 WHERE id=$2", date, ID)
+			if err != nil {
+				log.WithError(err).Error("cant set date_finish")
+				state.PreviewProcess(ctc)
+				return &ChoiceTime{}
+			}
+			ConfirmationOrder{}.PreviewProcess(ctc)
+			return &ConfirmationOrder{}
+		} else {
+			state.PreviewProcess(ctc)
+			return &ChoiceTime{}
+		}
 	} else {
 		state.PreviewProcess(ctc)
-		return &ChoiceDate{}
+		return &ChoiceTime{}
 	}
 }
 
 func (state ChoiceTime) PreviewProcess(ctc ChatContext) {
 	b := params.NewMessagesSendBuilder()
 	b.RandomID(0)
-	b.Message("Выберите дату выполнения заказа")
+	b.Message("Введите время выполнения заказа в формате ЧЧ:ММ")
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
-	twoDate:=&object.MessagesKeyboardButtonAction{}
-	twoDate.Type="text"
-	k.Buttons[]
 	k.AddRow()
-	payload:={"type":"text"}
-	k.AddTextButton("Сегодня", payload, "secondary")
-	k.AddRow()
-	k.AddTextButton("Завтра", "", "secondary")
-	//взял московское время
-	today := time.Now().UTC().Add(time.Hour * 3)
-	today = today.AddDate(0, 0, 1) //сместили дату на завтра
-	for i := 0; i < 5; i++ {
-		today = today.AddDate(0, 0, 1) //смещаем поэтапно на каждый из пяти дней
-		k.AddRow()
-		k.AddTextButton("", "")
-		k.AddTextButton(conversion.GetDateStr(today), "", "secondary")
-	}
-	k.AddRow()
-	k.AddTextButton("Через две недели", "", "secondary")
-	k.AddRow()
-	k.AddTextButton("Сейчас", "", "secondary")
+	k.AddTextButton("Вернуться к выбору дня", "", "secondary")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -326,4 +356,56 @@ func (state ChoiceTime) PreviewProcess(ctc ChatContext) {
 }
 func (state ChoiceTime) Name() string {
 	return "ChoiceTime"
+}
+
+//////////////////////////////////////////////////////////
+type ConfirmationOrder struct {
+}
+
+func (state ConfirmationOrder) Process(ctc ChatContext, messageText string) State {
+	if messageText == "Вернуться к выбору времени" {
+		ChoiceTime{}.PreviewProcess(ctc)
+		return &ChoiceTime{}
+	} else if messageText == "Подтвердить" {
+		state.PreviewProcess(ctc)
+		return &ConfirmationOrder{}
+	} else if messageText == "Добавить комментарий к заказу" {
+		state.PreviewProcess(ctc)
+		return &ConfirmationOrder{}
+	} else {
+		state.PreviewProcess(ctc)
+		return &ConfirmationOrder{}
+	}
+}
+
+func (state ConfirmationOrder) PreviewProcess(ctc ChatContext) {
+	ID, err := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
+	if err != nil {
+		state.PreviewProcess(ctc)
+		return
+	}
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	order,err:=repository.GetOrder(ctc.Db,ID)
+	if err!=nil{
+		state.PreviewProcess(ctc)
+		return
+	}
+	b.Message("Ваш заказ:\nДисциплина - "+order.DisciplineName+)
+	b.Message("Подтвердите заказ")
+	b.PeerID(ctc.User.VkID)
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Подтвердить", "", "secondary")
+	k.AddTextButton("Вернуться к выбору времени", "", "secondary")
+	k.AddTextButton("Добавить комментарий к заказу", "", "secondary")
+	b.Keyboard(k)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+func (state ConfirmationOrder) Name() string {
+	return "ConfirmationOrder"
 }

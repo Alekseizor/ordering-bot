@@ -131,10 +131,12 @@ func (a *App) Run(ctx context.Context) error {
 			BotUser = BotUsers[0]
 		}
 		strInState := map[string]state.State{
-			(&(state.StartState{})).Name():       &(state.StartState{}),
-			(&(state.OrderState{})).Name():       &(state.OrderState{}),
-			(&(state.ChoiceDiscipline{})).Name(): &(state.ChoiceDiscipline{}),
-			(&(state.ChoiceDate{})).Name():       &(state.ChoiceDate{}),
+			(&(state.StartState{})).Name():        &(state.StartState{}),
+			(&(state.OrderState{})).Name():        &(state.OrderState{}),
+			(&(state.ChoiceDiscipline{})).Name():  &(state.ChoiceDiscipline{}),
+			(&(state.ChoiceDate{})).Name():        &(state.ChoiceDate{}),
+			(&(state.ChoiceTime{})).Name():        &(state.ChoiceTime{}),
+			(&(state.ConfirmationOrder{})).Name(): &(state.ConfirmationOrder{}),
 		}
 		ctc := state.ChatContext{
 			User: BotUser,
