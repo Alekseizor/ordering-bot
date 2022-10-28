@@ -371,7 +371,7 @@ func (state ConfirmationOrder) Process(ctc ChatContext, messageText string) Stat
 		return &ConfirmationOrder{}
 	} else if messageText == "Добавить комментарий к заказу" {
 		state.PreviewProcess(ctc)
-		return &ConfirmationOrder{}
+		return &CommentOrder{}
 	} else {
 		state.PreviewProcess(ctc)
 		return &ConfirmationOrder{}
@@ -386,13 +386,18 @@ func (state ConfirmationOrder) PreviewProcess(ctc ChatContext) {
 	}
 	b := params.NewMessagesSendBuilder()
 	b.RandomID(0)
-	order,err:=repository.GetOrder(ctc.Db,ID)
-	if err!=nil{
+	order, err := repository.GetOrder(ctc.Db, ID)
+	if err != nil {
 		state.PreviewProcess(ctc)
 		return
 	}
-	b.Message("Ваш заказ:\nДисциплина - "+order.DisciplineName+)
-	b.Message("Подтвердите заказ")
+	disciplineName, err := repository.GetDisciplineName(ctc.Db, order.DisciplineID)
+	if err != nil {
+		state.PreviewProcess(ctc)
+		return
+	}
+	dateFinish := strconv.Itoa(order.DateFinish.Day()) + "." + order.DateFinish.Format("01") + "." + strconv.Itoa(order.DateFinish.Year())
+	b.Message("Ваш заказ:\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04")) //вывод заказа пользователя
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
@@ -400,7 +405,7 @@ func (state ConfirmationOrder) PreviewProcess(ctc ChatContext) {
 	k.AddTextButton("Вернуться к выбору времени", "", "secondary")
 	k.AddTextButton("Добавить комментарий к заказу", "", "secondary")
 	b.Keyboard(k)
-	_, err := ctc.Vk.MessagesSend(b.Params)
+	_, err = ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
 		log.Println("Failed to get record")
 		log.Error(err)
@@ -408,4 +413,54 @@ func (state ConfirmationOrder) PreviewProcess(ctc ChatContext) {
 }
 func (state ConfirmationOrder) Name() string {
 	return "ConfirmationOrder"
+}
+
+//////////////////////////////////////////////////////////
+type CommentOrder struct {
+}
+
+func (state CommentOrder) Process(ctc ChatContext, messageText string) State {
+	if messageText == "Назад" {
+		ConfirmationOrder{}.PreviewProcess(ctc)
+		return &ConfirmationOrder{}
+	} else if messageText == "Отправить комментарий" {
+		CommentOrder{}.PreviewProcess(ctc)
+		return &CommentOrder{}
+	} else {
+		if utf8.RuneCountInString(messageText) > 150 {
+			log.Println("Text is to large")
+			CommentOrder{}.PreviewProcess(ctc)
+			return &CommentOrder{}
+		}
+		ID, err := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
+		_, err = ctc.Db.ExecContext(*ctc.Ctx, "UPDATE orders SET customers_comment =$1 WHERE id=$2", messageText, ID)
+		if err != nil {
+			log.WithError(err).Error("cant record users comment")
+			state.PreviewProcess(ctc)
+			return &CommentOrder{}
+		}
+		CommentOrder{}.PreviewProcess(ctc)
+		return &CommentOrder{}
+	}
+
+}
+
+func (state CommentOrder) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.Message("Ограничение на комментарий - 150 символов")
+	b.PeerID(ctc.User.VkID)
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Отправить комментарий", "", "secondary")
+	k.AddTextButton("Назад", "", "secondary")
+	b.Keyboard(k)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+func (state CommentOrder) Name() string {
+	return "CommentOrder"
 }
