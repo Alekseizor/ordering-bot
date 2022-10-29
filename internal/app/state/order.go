@@ -367,10 +367,10 @@ func (state ConfirmationOrder) Process(ctc ChatContext, messageText string) Stat
 		ChoiceTime{}.PreviewProcess(ctc)
 		return &ChoiceTime{}
 	} else if messageText == "Подтвердить" {
-		state.PreviewProcess(ctc)
-		return &ConfirmationOrder{}
+		OrderCompleted{}.PreviewProcess(ctc)
+		return &OrderCompleted{}
 	} else if messageText == "Добавить комментарий к заказу" {
-		state.PreviewProcess(ctc)
+		CommentOrder{}.PreviewProcess(ctc)
 		return &CommentOrder{}
 	} else {
 		state.PreviewProcess(ctc)
@@ -424,8 +424,8 @@ func (state CommentOrder) Process(ctc ChatContext, messageText string) State {
 		ConfirmationOrder{}.PreviewProcess(ctc)
 		return &ConfirmationOrder{}
 	} else if messageText == "Отправить комментарий" {
-		CommentOrder{}.PreviewProcess(ctc)
-		return &CommentOrder{}
+		TaskOrder{}.PreviewProcess(ctc)
+		return &TaskOrder{}
 	} else {
 		if utf8.RuneCountInString(messageText) > 150 {
 			log.Println("Text is to large")
@@ -439,7 +439,7 @@ func (state CommentOrder) Process(ctc ChatContext, messageText string) State {
 			state.PreviewProcess(ctc)
 			return &CommentOrder{}
 		}
-		CommentOrder{}.PreviewProcess(ctc)
+		//CommentOrder{}.PreviewProcess(ctc)
 		return &CommentOrder{}
 	}
 
@@ -463,4 +463,193 @@ func (state CommentOrder) PreviewProcess(ctc ChatContext) {
 }
 func (state CommentOrder) Name() string {
 	return "CommentOrder"
+}
+
+//////////////////////////////////////////////////////////
+type TaskOrder struct {
+}
+
+func (state TaskOrder) Process(ctc ChatContext, messageText string) State {
+	if messageText == "Назад" {
+		CommentOrder{}.PreviewProcess(ctc)
+		return &CommentOrder{}
+	} else {
+		ID, err := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
+		_, err = ctc.Db.ExecContext(*ctc.Ctx, "UPDATE orders SET order_task =$1 WHERE id=$2", messageText, ID)
+		if err != nil {
+			log.WithError(err).Error("cant record users comment")
+			state.PreviewProcess(ctc)
+			return &CommentOrder{}
+		}
+		OrderCompleted{}.PreviewProcess(ctc)
+		return &OrderCompleted{}
+	}
+
+	//ctc.Vk.PhotosGetUploadServer()
+}
+
+func (state TaskOrder) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.Message("Отправьте фото,текстовое описание или документ задания в формате pdf одним сообщением!")
+	b.PeerID(ctc.User.VkID)
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Назад", "", "secondary")
+	b.Keyboard(k)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+func (state TaskOrder) Name() string {
+	return "TaskOrder"
+}
+
+//////////////////////////////////////////////////////////
+type OrderCompleted struct {
+}
+
+func (state OrderCompleted) Process(ctc ChatContext, messageText string) State {
+	if messageText == "Оформить заказ" {
+		state.PreviewProcess(ctc)
+		return &OrderCompleted{}
+	} else if messageText == "Редактировать заказ" {
+		b := params.NewMessagesSendBuilder()
+		b.RandomID(0)
+		b.Message("Выберите пункт для редактирования")
+		b.PeerID(ctc.User.VkID)
+		k := &object.MessagesKeyboard{}
+		k.AddRow()
+		k.AddTextButton("Вид дисциплины", "", "secondary")
+		k.AddRow()
+		k.AddTextButton("Дата исполнения заказа", "", "secondary")
+		k.AddRow()
+		k.AddTextButton("Информация по заказу", "", "secondary")
+		k.AddRow()
+		k.AddTextButton("Комментарий к заказу", "", "secondary")
+		k.AddRow()
+		k.AddTextButton("Назад", "", "secondary")
+		b.Keyboard(k)
+		_, err := ctc.Vk.MessagesSend(b.Params)
+		if err != nil {
+			log.Println("Failed to get record")
+			log.Error(err)
+		}
+		OrderChange{}.PreviewProcess(ctc)
+		return &OrderChange{}
+
+	} else if messageText == "Отменить заказ" {
+		b := params.NewMessagesSendBuilder()
+		b.RandomID(0)
+		b.Message("Вы действительно хотите отменить заказ?")
+		b.PeerID(ctc.User.VkID)
+		k := &object.MessagesKeyboard{}
+		k.AddRow()
+		k.AddTextButton("Да", "", "secondary")
+		k.AddTextButton("Нет", "", "secondary")
+		b.Keyboard(k)
+		_, err := ctc.Vk.MessagesSend(b.Params)
+		if err != nil {
+			log.Println("Failed to get record")
+			log.Error(err)
+		}
+		OrderCancel{}.PreviewProcess(ctc)
+		return &OrderCancel{}
+
+	} else {
+		state.PreviewProcess(ctc)
+		return &OrderCompleted{}
+	}
+}
+
+func (state OrderCompleted) PreviewProcess(ctc ChatContext) {
+	ID, err := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
+	if err != nil {
+		state.PreviewProcess(ctc)
+		return
+	}
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.Message("Информация получена")
+	b.PeerID(ctc.User.VkID)
+	_, err = ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+	order, err := repository.GetOrder(ctc.Db, ID)
+	if err != nil {
+		state.PreviewProcess(ctc)
+		return
+	}
+	disciplineName, err := repository.GetDisciplineName(ctc.Db, order.DisciplineID)
+	if err != nil {
+		state.PreviewProcess(ctc)
+		return
+	}
+	dateFinish := strconv.Itoa(order.DateFinish.Day()) + "." + order.DateFinish.Format("01") + "." + strconv.Itoa(order.DateFinish.Year())
+	orderTask := *order.OrderTask
+	customerComment := *order.CustomersComment
+	if customerComment != "" {
+		b.Message("Проверьте заказ:\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask + "\nКомментарий к заказу - " + customerComment) //вывод заказа пользователя
+	} else {
+		b.Message("Проверьте заказ:\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask) //вывод заказа пользователя
+	}
+
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Оформить заказ", "", "secondary")
+	k.AddTextButton("Редактировать заказ", "", "secondary")
+	k.AddTextButton("Отменить заказ", "", "secondary")
+	b.Keyboard(k)
+	_, err = ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+func (state OrderCompleted) Name() string {
+	return "OrderCompleted"
+}
+
+//////////////////////////////////////////////////////////
+type OrderCancel struct {
+}
+
+func (state OrderCancel) Process(ctc ChatContext, messageText string) State {
+	if messageText == "Да" {
+		StartState{}.PreviewProcess(ctc)
+		return &StartState{}
+	} else {
+		OrderCompleted{}.PreviewProcess(ctc)
+		return &OrderCompleted{}
+	}
+}
+
+func (state OrderCancel) PreviewProcess(ctc ChatContext) {
+}
+func (state OrderCancel) Name() string {
+	return "OrderCancel"
+}
+
+//////////////////////////////////////////////////////////
+type OrderChange struct {
+}
+
+func (state OrderChange) Process(ctc ChatContext, messageText string) State {
+	if messageText == "Назад" {
+		OrderCompleted{}.PreviewProcess(ctc)
+		return &OrderCompleted{}
+	} else {
+		OrderCompleted{}.PreviewProcess(ctc)
+		return &OrderCompleted{}
+	}
+}
+
+func (state OrderChange) PreviewProcess(ctc ChatContext) {
+}
+func (state OrderChange) Name() string {
+	return "OrderChange"
 }

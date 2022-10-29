@@ -138,6 +138,10 @@ func (a *App) Run(ctx context.Context) error {
 			(&(state.ChoiceTime{})).Name():        &(state.ChoiceTime{}),
 			(&(state.ConfirmationOrder{})).Name(): &(state.ConfirmationOrder{}),
 			(&(state.CommentOrder{})).Name():      &(state.CommentOrder{}),
+			(&(state.TaskOrder{})).Name():         &(state.TaskOrder{}),
+			(&(state.OrderCompleted{})).Name():    &(state.OrderCompleted{}),
+			(&(state.OrderCancel{})).Name():       &(state.OrderCancel{}),
+			(&(state.OrderChange{})).Name():       &(state.OrderChange{}),
 		}
 		ctc := state.ChatContext{
 			User: BotUser,

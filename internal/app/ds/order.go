@@ -16,4 +16,5 @@ type Order struct {
 	Price            *uint64   `db:"price"`
 	PayoutAdmin      *bool     `db:"payout_admin"`
 	PayoutExecutors  *bool     `db:"payout_executors"`
+	OrderTask        *string   `db:"order_task"`
 }
