@@ -1,22 +1,39 @@
 package state
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/json"
 	"github.com/Alekseizor/ordering-bot/internal/app/conversion"
 	"github.com/Alekseizor/ordering-bot/internal/app/repository"
+	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/SevereCloud/vksdk/v2/api/params"
 	"github.com/SevereCloud/vksdk/v2/object"
 	log "github.com/sirupsen/logrus"
+	"io"
+	"mime/multipart"
+	"net/http"
 	"strconv"
 	"time"
 	"unicode/utf8"
 )
 
+type docsPhoto struct {
+	Server int    `json:"server"`
+	Photo  string `json:"photo"`
+	Hash   string `json:"hash"`
+}
+
+type docsDoc struct {
+	File string `json:"file"`
+}
+
 //////////////////////////////////////////////////////////
 type OrderState struct {
 }
 
-func (state OrderState) Process(ctc ChatContext, messageText string) State {
+func (state OrderState) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
 	if messageText == "Выбор дисциплины" {
 		ChoiceDiscipline{}.PreviewProcess(ctc)
 		return &ChoiceDiscipline{}
@@ -54,7 +71,8 @@ func (state OrderState) Name() string {
 type ChoiceDiscipline struct {
 }
 
-func (state ChoiceDiscipline) Process(ctc ChatContext, messageText string) State {
+func (state ChoiceDiscipline) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
 	if messageText == "Назад в главное меню" {
 		StartState{}.PreviewProcess(ctc)
 		return &StartState{}
@@ -63,7 +81,7 @@ func (state ChoiceDiscipline) Process(ctc ChatContext, messageText string) State
 		if err != nil {
 			state.PreviewProcess(ctc)
 			return &ChoiceDiscipline{}
-		} else if (messageInt < 1) && (messageInt > 52) {
+		} else if (messageInt < 1) || (messageInt > 52) {
 			state.PreviewProcess(ctc)
 			return &ChoiceDiscipline{}
 		} else {
@@ -117,7 +135,8 @@ const (
 type ChoiceDate struct {
 }
 
-func (state ChoiceDate) Process(ctc ChatContext, messageText string) State {
+func (state ChoiceDate) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
 	ID, err := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
 	if err != nil {
 		state.PreviewProcess(ctc)
@@ -284,7 +303,8 @@ func (state ChoiceDate) Name() string {
 type ChoiceTime struct {
 }
 
-func (state ChoiceTime) Process(ctc ChatContext, messageText string) State {
+func (state ChoiceTime) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
 	ID, err := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
 	if err != nil {
 		state.PreviewProcess(ctc)
@@ -293,7 +313,7 @@ func (state ChoiceTime) Process(ctc ChatContext, messageText string) State {
 	if messageText == "Вернуться к выбору дня" {
 		ChoiceDate{}.PreviewProcess(ctc)
 		return &ChoiceDate{}
-	} else if utf8.RuneCountInString(messageText) > 4 {
+	} else if utf8.RuneCountInString(messageText) == 5 {
 		if messageText[2] == ':' {
 			hour, err := strconv.Atoi(messageText[0:2])
 			if err != nil || hour < 0 || hour > 23 {
@@ -362,13 +382,21 @@ func (state ChoiceTime) Name() string {
 type ConfirmationOrder struct {
 }
 
-func (state ConfirmationOrder) Process(ctc ChatContext, messageText string) State {
+func (state ConfirmationOrder) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
 	if messageText == "Вернуться к выбору времени" {
 		ChoiceTime{}.PreviewProcess(ctc)
 		return &ChoiceTime{}
 	} else if messageText == "Подтвердить" {
-		OrderCompleted{}.PreviewProcess(ctc)
-		return &OrderCompleted{}
+		ID, err := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
+		_, err = ctc.Db.ExecContext(*ctc.Ctx, "UPDATE orders SET customers_comment =$1 WHERE id=$2", nil, ID)
+		if err != nil {
+			log.WithError(err).Error("cant record users comment")
+			state.PreviewProcess(ctc)
+			return &ConfirmationOrder{}
+		}
+		TaskOrder{}.PreviewProcess(ctc)
+		return &TaskOrder{}
 	} else if messageText == "Добавить комментарий к заказу" {
 		CommentOrder{}.PreviewProcess(ctc)
 		return &CommentOrder{}
@@ -384,8 +412,6 @@ func (state ConfirmationOrder) PreviewProcess(ctc ChatContext) {
 		state.PreviewProcess(ctc)
 		return
 	}
-	b := params.NewMessagesSendBuilder()
-	b.RandomID(0)
 	order, err := repository.GetOrder(ctc.Db, ID)
 	if err != nil {
 		state.PreviewProcess(ctc)
@@ -396,6 +422,8 @@ func (state ConfirmationOrder) PreviewProcess(ctc ChatContext) {
 		state.PreviewProcess(ctc)
 		return
 	}
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
 	dateFinish := strconv.Itoa(order.DateFinish.Day()) + "." + order.DateFinish.Format("01") + "." + strconv.Itoa(order.DateFinish.Year())
 	b.Message("Ваш заказ:\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04")) //вывод заказа пользователя
 	b.PeerID(ctc.User.VkID)
@@ -419,7 +447,8 @@ func (state ConfirmationOrder) Name() string {
 type CommentOrder struct {
 }
 
-func (state CommentOrder) Process(ctc ChatContext, messageText string) State {
+func (state CommentOrder) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
 	if messageText == "Назад" {
 		ConfirmationOrder{}.PreviewProcess(ctc)
 		return &ConfirmationOrder{}
@@ -442,7 +471,6 @@ func (state CommentOrder) Process(ctc ChatContext, messageText string) State {
 		//CommentOrder{}.PreviewProcess(ctc)
 		return &CommentOrder{}
 	}
-
 }
 
 func (state CommentOrder) PreviewProcess(ctc ChatContext) {
@@ -469,7 +497,9 @@ func (state CommentOrder) Name() string {
 type TaskOrder struct {
 }
 
-func (state TaskOrder) Process(ctc ChatContext, messageText string) State {
+func (state TaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
+	attachments := msg.Attachments
 	if messageText == "Назад" {
 		CommentOrder{}.PreviewProcess(ctc)
 		return &CommentOrder{}
@@ -479,13 +509,106 @@ func (state TaskOrder) Process(ctc ChatContext, messageText string) State {
 		if err != nil {
 			log.WithError(err).Error("cant record users comment")
 			state.PreviewProcess(ctc)
-			return &CommentOrder{}
+			return &TaskOrder{}
 		}
+		if len(attachments) > 0 {
+			for _, val := range attachments {
+				switch val.Type {
+				case "doc":
+					resp, err := http.Get(val.Doc.URL)
+					if err != nil {
+						log.Fatal(err)
+					}
+					upload, _ := ctc.Vk.DocsGetMessagesUploadServer(api.Params{
+						"type":    "doc",
+						"peer_id": ctc.User.VkID,
+					})
+					file, err := io.ReadAll(resp.Body)
+					fileBody := bytes.NewReader(file)
+					log.Println(upload.UploadURL)
+					body := &bytes.Buffer{}
+					writer := multipart.NewWriter(body)
+					part, _ := writer.CreateFormFile("file", val.Doc.Title)
+					io.Copy(part, fileBody)
+					writer.Close()
+
+					r, _ := http.NewRequest("POST", upload.UploadURL, bytes.NewReader(body.Bytes()))
+					r.Header.Set("Content-Type", writer.FormDataContentType())
+					client := &http.Client{}
+					response, _ := client.Do(r)
+					docs := &docsDoc{}
+					json.NewDecoder(response.Body).Decode(docs)
+					log.Println(docs.File)
+					savedDoc, _ := ctc.Vk.DocsSave(api.Params{
+						"file":  docs.File,
+						"title": val.Doc.Title,
+					})
+					log.Println(savedDoc.Doc.ID)
+					b := params.NewMessagesSendBuilder()
+					b.RandomID(0)
+					b.PeerID(ctc.User.VkID)
+					b.Attachment("doc" + strconv.Itoa(savedDoc.Doc.OwnerID) + "_" + strconv.Itoa(savedDoc.Doc.ID) + "_" + savedDoc.Doc.AccessKey)
+					_, err = ctc.Vk.MessagesSend(b.Params)
+					if err != nil {
+						log.Println("Failed to get record")
+						log.Error(err)
+					}
+					//case "photo":
+					//	resp, err := http.Get(val.Photo.Sizes[0].URL)
+					//	if err != nil {
+					//		log.Fatal(err)
+					//	}
+					//	upload, _ := ctc.Vk.PhotosGetMessagesUploadServer(api.Params{
+					//		"peer_id": ctc.User.VkID,
+					//	})
+					//	file, err := io.ReadAll(resp.Body)
+					//	fileBody := bytes.NewReader(file)
+					//	log.Println(upload.UploadURL)
+					//	body := &bytes.Buffer{}
+					//	writer := multipart.NewWriter(body)
+					//	part, _ := writer.CreateFormFile("file", val.Photo.Title)
+					//	io.Copy(part, fileBody)
+					//	writer.Close()
+					//
+					//	r, _ := http.NewRequest("POST", upload.UploadURL, bytes.NewReader(body.Bytes()))
+					//	r.Header.Set("Content-Type", writer.FormDataContentType())
+					//	client := &http.Client{}
+					//	response, _ := client.Do(r)
+					//	docs := &docsPhoto{}
+					//	json.NewDecoder(response.Body).Decode(docs)
+					//
+					//	savedPhoto, _ := ctc.Vk.PhotosSaveMessagesPhoto(api.Params{
+					//		"photo":  docs.Photo,
+					//		"server": docs.Server,
+					//		"hash":   docs.Hash,
+					//	})
+					//
+					//	b := params.NewMessagesSendBuilder()
+					//	b.RandomID(0)
+					//	b.PeerID(ctc.User.VkID)
+					//	b.Attachment("photo" + strconv.Itoa(savedPhoto[0].OwnerID) + "_" + strconv.Itoa(savedPhoto[0].ID) + "_" + savedPhoto[0].AccessKey)
+					//	_, err = ctc.Vk.MessagesSend(b.Params)
+					//	if err != nil {
+					//		log.Println("Failed to get record")
+					//		log.Error(err)
+					//	}
+				}
+			}
+		}
+		//b := params.NewMessagesSendBuilder()
+		//b.RandomID(0)
+		//b.PeerID(ctc.User.VkID)
+		//b.Attachment("doc" + strconv.Itoa(owner_id) + "_" + strconv.Itoa(id) + "_" + access_key)
+		//log.Println("doc" + strconv.Itoa(owner_id) + "_" + strconv.Itoa(id) + "_" + access_key)
+		//_, err = ctc.Vk.MessagesSend(b.Params)
+		//if err != nil {
+		//	log.Println("Failed to get record")
+		//	log.Error(err)
+		//}
+
 		OrderCompleted{}.PreviewProcess(ctc)
 		return &OrderCompleted{}
 	}
-
-	//ctc.Vk.PhotosGetUploadServer()
 }
 
 func (state TaskOrder) PreviewProcess(ctc ChatContext) {
@@ -497,6 +620,7 @@ func (state TaskOrder) PreviewProcess(ctc ChatContext) {
 	k.AddRow()
 	k.AddTextButton("Назад", "", "secondary")
 	b.Keyboard(k)
+
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
 		log.Println("Failed to get record")
@@ -511,50 +635,16 @@ func (state TaskOrder) Name() string {
 type OrderCompleted struct {
 }
 
-func (state OrderCompleted) Process(ctc ChatContext, messageText string) State {
+func (state OrderCompleted) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
 	if messageText == "Оформить заказ" {
 		state.PreviewProcess(ctc)
 		return &OrderCompleted{}
 	} else if messageText == "Редактировать заказ" {
-		b := params.NewMessagesSendBuilder()
-		b.RandomID(0)
-		b.Message("Выберите пункт для редактирования")
-		b.PeerID(ctc.User.VkID)
-		k := &object.MessagesKeyboard{}
-		k.AddRow()
-		k.AddTextButton("Вид дисциплины", "", "secondary")
-		k.AddRow()
-		k.AddTextButton("Дата исполнения заказа", "", "secondary")
-		k.AddRow()
-		k.AddTextButton("Информация по заказу", "", "secondary")
-		k.AddRow()
-		k.AddTextButton("Комментарий к заказу", "", "secondary")
-		k.AddRow()
-		k.AddTextButton("Назад", "", "secondary")
-		b.Keyboard(k)
-		_, err := ctc.Vk.MessagesSend(b.Params)
-		if err != nil {
-			log.Println("Failed to get record")
-			log.Error(err)
-		}
 		OrderChange{}.PreviewProcess(ctc)
 		return &OrderChange{}
 
 	} else if messageText == "Отменить заказ" {
-		b := params.NewMessagesSendBuilder()
-		b.RandomID(0)
-		b.Message("Вы действительно хотите отменить заказ?")
-		b.PeerID(ctc.User.VkID)
-		k := &object.MessagesKeyboard{}
-		k.AddRow()
-		k.AddTextButton("Да", "", "secondary")
-		k.AddTextButton("Нет", "", "secondary")
-		b.Keyboard(k)
-		_, err := ctc.Vk.MessagesSend(b.Params)
-		if err != nil {
-			log.Println("Failed to get record")
-			log.Error(err)
-		}
 		OrderCancel{}.PreviewProcess(ctc)
 		return &OrderCancel{}
 
@@ -591,13 +681,26 @@ func (state OrderCompleted) PreviewProcess(ctc ChatContext) {
 	}
 	dateFinish := strconv.Itoa(order.DateFinish.Day()) + "." + order.DateFinish.Format("01") + "." + strconv.Itoa(order.DateFinish.Year())
 	orderTask := *order.OrderTask
-	customerComment := *order.CustomersComment
-	if customerComment != "" {
+
+	if order.CustomersComment != nil {
+		customerComment := *order.CustomersComment
 		b.Message("Проверьте заказ:\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask + "\nКомментарий к заказу - " + customerComment) //вывод заказа пользователя
 	} else {
 		b.Message("Проверьте заказ:\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask) //вывод заказа пользователя
 	}
-
+	//attch := msg.Attachments
+	//access_key := attch[0].Photo.AccessKey
+	//owner_id := attch[0].Photo.OwnerID
+	//id := attch[0].Photo.ID
+	//b := params.NewMessagesSendBuilder()
+	//b.RandomID(0)
+	//b.PeerID(ctc.User.VkID)
+	//b.Attachment("photo" + strconv.Itoa(owner_id) + "_" + strconv.Itoa(id) + "_" + access_key)
+	//_, err = ctc.Vk.MessagesSend(b.Params)
+	//if err != nil {
+	//	log.Println("Failed to get record")
+	//	log.Error(err)
+	//}
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
 	k.AddTextButton("Оформить заказ", "", "secondary")
@@ -618,8 +721,21 @@ func (state OrderCompleted) Name() string {
 type OrderCancel struct {
 }
 
-func (state OrderCancel) Process(ctc ChatContext, messageText string) State {
+func (state OrderCancel) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
 	if messageText == "Да" {
+		ID, err := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
+		if err != nil {
+			log.WithError(err).Error("cant get order id")
+			state.PreviewProcess(ctc)
+			return &OrderCancel{}
+		}
+		_, err = ctc.Db.ExecContext(*ctc.Ctx, "DELETE FROM orders WHERE id=$1", ID)
+		if err != nil {
+			log.WithError(err).Error("cant delete order")
+			state.PreviewProcess(ctc)
+			return &OrderCancel{}
+		}
 		StartState{}.PreviewProcess(ctc)
 		return &StartState{}
 	} else {
@@ -629,6 +745,20 @@ func (state OrderCancel) Process(ctc ChatContext, messageText string) State {
 }
 
 func (state OrderCancel) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.Message("Вы действительно хотите отменить заказ?")
+	b.PeerID(ctc.User.VkID)
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Да", "", "secondary")
+	k.AddTextButton("Нет", "", "secondary")
+	b.Keyboard(k)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
 }
 func (state OrderCancel) Name() string {
 	return "OrderCancel"
@@ -638,10 +768,26 @@ func (state OrderCancel) Name() string {
 type OrderChange struct {
 }
 
-func (state OrderChange) Process(ctc ChatContext, messageText string) State {
+func (state OrderChange) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
 	if messageText == "Назад" {
 		OrderCompleted{}.PreviewProcess(ctc)
 		return &OrderCompleted{}
+	} else if messageText == "Вид дисциплины" {
+		EditDiscipline{}.PreviewProcess(ctc)
+		return &EditDiscipline{}
+	} else if messageText == "Дата исполнения заказа" {
+		EditDate{}.PreviewProcess(ctc)
+		return &EditDate{}
+	} else if messageText == "Время исполнения заказа" {
+		EditTime{}.PreviewProcess(ctc)
+		return &EditTime{}
+	} else if messageText == "Информация по заказу" {
+		EditTaskOrder{}.PreviewProcess(ctc)
+		return &EditTaskOrder{}
+	} else if messageText == "Комментарий к заказу" {
+		EditCommentOrder{}.PreviewProcess(ctc)
+		return &EditCommentOrder{}
 	} else {
 		OrderCompleted{}.PreviewProcess(ctc)
 		return &OrderCompleted{}
@@ -649,6 +795,29 @@ func (state OrderChange) Process(ctc ChatContext, messageText string) State {
 }
 
 func (state OrderChange) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.Message("Выберите пункт для редактирования")
+	b.PeerID(ctc.User.VkID)
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Вид дисциплины", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Дата исполнения заказа", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Время исполнения заказа", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Информация по заказу", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Комментарий к заказу", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Назад", "", "secondary")
+	b.Keyboard(k)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
 }
 func (state OrderChange) Name() string {
 	return "OrderChange"

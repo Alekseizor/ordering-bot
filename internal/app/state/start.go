@@ -16,9 +16,10 @@ type ChatContext struct {
 	Ctx  *context.Context
 	Db   *sqlx.DB
 }
+
 type State interface {
-	Name() string                      //получаем название состояния в виде строки, чтобы в дальнейшем куда-то записать(БД)
-	Process(ChatContext, string) State //нужно взять контекст, посмотреть на каком состоянии сейчас пользователь, метод должен вернуть состояние
+	Name() string                                      //получаем название состояния в виде строки, чтобы в дальнейшем куда-то записать(БД)
+	Process(ChatContext, object.MessagesMessage) State //нужно взять контекст, посмотреть на каком состоянии сейчас пользователь, метод должен вернуть состояние
 	PreviewProcess(ctc ChatContext)
 }
 
@@ -26,7 +27,8 @@ type State interface {
 type StartState struct {
 }
 
-func (state StartState) Process(ctc ChatContext, messageText string) State {
+func (state StartState) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
 	if messageText == "Сделать заказ" || messageText == "1" {
 		OrderState{}.PreviewProcess(ctc)
 		return &OrderState{}
