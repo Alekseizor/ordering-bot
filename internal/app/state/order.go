@@ -501,6 +501,25 @@ type TaskOrder struct {
 func (state TaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) State {
 	messageText := msg.Text
 	attachments := msg.Attachments
+
+	parameters := api.Params{
+		"peer_id":    ctc.User.VkID,
+		"media_type": "photo",
+		"count":      "1",
+		"start_from": nil,
+	}
+
+	attachResp, _ := ctc.Vk.MessagesGetHistoryAttachments(parameters)
+	parameters["start_from"] = attachResp.NextFrom
+	for _, val := range attachResp.Items {
+		log.Println(val.Attachment.Photo)
+	}
+	attachResp, _ = ctc.Vk.MessagesGetHistoryAttachments(parameters)
+	for _, val := range attachResp.Items {
+		log.Println(val.Attachment.Photo)
+	}
+
+	log.Println(msg.Attachments[0].Photo)
 	if messageText == "Назад" {
 		CommentOrder{}.PreviewProcess(ctc)
 		return &CommentOrder{}
@@ -512,8 +531,10 @@ func (state TaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) Stat
 			state.PreviewProcess(ctc)
 			return &TaskOrder{}
 		}
+		log.Println(len(attachments))
 		if len(attachments) > 0 {
 			for _, val := range attachments {
+				log.Println(val.Type)
 				switch val.Type {
 				case "doc":
 					resp, err := http.Get(val.Doc.URL)
@@ -554,6 +575,7 @@ func (state TaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) Stat
 						log.Println("Failed to get record")
 						log.Error(err)
 					}
+					break
 				case "photo":
 					var num int
 					for i, a := range val.Photo.Sizes {
@@ -578,7 +600,7 @@ func (state TaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) Stat
 					substr := strings.Split(strings.Split(val.Photo.Sizes[num].URL, "?")[0], "/")
 					photoTitle := substr[len(substr)-1]
 
-					log.Println(val.Photo.Sizes)
+					//log.Println(val.Photo.Sizes)
 					file, err := io.ReadAll(resp.Body)
 					fileBody := bytes.NewReader(file)
 					body := &bytes.Buffer{}
@@ -609,6 +631,9 @@ func (state TaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) Stat
 						log.Println("Failed to get record")
 						log.Error(err)
 					}
+					break
+				default:
+					break
 				}
 			}
 		}
@@ -655,8 +680,10 @@ type OrderCompleted struct {
 func (state OrderCompleted) Process(ctc ChatContext, msg object.MessagesMessage) State {
 	messageText := msg.Text
 	if messageText == "Оформить заказ" {
-		state.PreviewProcess(ctc)
-		return &OrderCompleted{}
+		TaskOrder{}.PreviewProcess(ctc)
+		return &TaskOrder{}
+		//state.PreviewProcess(ctc) todo: обратно вернуть
+		//return &OrderCompleted{}
 	} else if messageText == "Редактировать заказ" {
 		OrderChange{}.PreviewProcess(ctc)
 		return &OrderChange{}
