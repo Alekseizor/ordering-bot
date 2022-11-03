@@ -14,6 +14,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 	"unicode/utf8"
 )
@@ -553,45 +554,61 @@ func (state TaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) Stat
 						log.Println("Failed to get record")
 						log.Error(err)
 					}
-					//case "photo":
-					//	resp, err := http.Get(val.Photo.Sizes[0].URL)
-					//	if err != nil {
-					//		log.Fatal(err)
-					//	}
-					//	upload, _ := ctc.Vk.PhotosGetMessagesUploadServer(api.Params{
-					//		"peer_id": ctc.User.VkID,
-					//	})
-					//	file, err := io.ReadAll(resp.Body)
-					//	fileBody := bytes.NewReader(file)
-					//	log.Println(upload.UploadURL)
-					//	body := &bytes.Buffer{}
-					//	writer := multipart.NewWriter(body)
-					//	part, _ := writer.CreateFormFile("file", val.Photo.Title)
-					//	io.Copy(part, fileBody)
-					//	writer.Close()
-					//
-					//	r, _ := http.NewRequest("POST", upload.UploadURL, bytes.NewReader(body.Bytes()))
-					//	r.Header.Set("Content-Type", writer.FormDataContentType())
-					//	client := &http.Client{}
-					//	response, _ := client.Do(r)
-					//	docs := &docsPhoto{}
-					//	json.NewDecoder(response.Body).Decode(docs)
-					//
-					//	savedPhoto, _ := ctc.Vk.PhotosSaveMessagesPhoto(api.Params{
-					//		"photo":  docs.Photo,
-					//		"server": docs.Server,
-					//		"hash":   docs.Hash,
-					//	})
-					//
-					//	b := params.NewMessagesSendBuilder()
-					//	b.RandomID(0)
-					//	b.PeerID(ctc.User.VkID)
-					//	b.Attachment("photo" + strconv.Itoa(savedPhoto[0].OwnerID) + "_" + strconv.Itoa(savedPhoto[0].ID) + "_" + savedPhoto[0].AccessKey)
-					//	_, err = ctc.Vk.MessagesSend(b.Params)
-					//	if err != nil {
-					//		log.Println("Failed to get record")
-					//		log.Error(err)
-					//	}
+				case "photo":
+					var num int
+					for i, a := range val.Photo.Sizes {
+						if a.Type == "z" {
+							num = i
+							break
+						}
+						if a.Type == "x" {
+							num = i
+						}
+					}
+					log.Println(num)
+					resp, err := http.Get(val.Photo.Sizes[num].URL)
+					if err != nil {
+						log.Fatal(err)
+					}
+					upload, _ := ctc.Vk.PhotosGetMessagesUploadServer(api.Params{
+						"peer_id": ctc.User.VkID,
+					})
+
+					//substr := strings.Split(val.Photo.Sizes[num].URL, "?")
+					substr := strings.Split(strings.Split(val.Photo.Sizes[num].URL, "?")[0], "/")
+					photoTitle := substr[len(substr)-1]
+
+					log.Println(val.Photo.Sizes)
+					file, err := io.ReadAll(resp.Body)
+					fileBody := bytes.NewReader(file)
+					body := &bytes.Buffer{}
+					writer := multipart.NewWriter(body)
+					part, _ := writer.CreateFormFile("file", photoTitle)
+					io.Copy(part, fileBody)
+					writer.Close()
+
+					r, _ := http.NewRequest("POST", upload.UploadURL, bytes.NewReader(body.Bytes()))
+					r.Header.Set("Content-Type", writer.FormDataContentType())
+					client := &http.Client{}
+					response, _ := client.Do(r)
+					docs := &docsPhoto{}
+					json.NewDecoder(response.Body).Decode(docs)
+					savedPhoto, _ := ctc.Vk.PhotosSaveMessagesPhoto(api.Params{
+						"photo":  docs.Photo,
+						"server": docs.Server,
+						"hash":   docs.Hash,
+					})
+
+					b := params.NewMessagesSendBuilder()
+					b.RandomID(0)
+					b.PeerID(ctc.User.VkID)
+					b.Attachment("photo" + strconv.Itoa(savedPhoto[0].OwnerID) + "_" + strconv.Itoa(savedPhoto[0].ID) + "_" + savedPhoto[0].AccessKey)
+					//b.Attachment("photo" + strconv.Itoa(val.Photo.OwnerID) + "_" + strconv.Itoa(val.Photo.ID) + "_" + val.Photo.AccessKey)
+					_, err = ctc.Vk.MessagesSend(b.Params)
+					if err != nil {
+						log.Println("Failed to get record")
+						log.Error(err)
+					}
 				}
 			}
 		}
