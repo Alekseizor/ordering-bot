@@ -500,26 +500,13 @@ type TaskOrder struct {
 
 func (state TaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) State {
 	messageText := msg.Text
-	attachments := msg.Attachments
 
-	parameters := api.Params{
-		"peer_id":    ctc.User.VkID,
-		"media_type": "photo",
-		"count":      "1",
-		"start_from": nil,
-	}
+	fullMSG, _ := ctc.Vk.MessagesGetByID(api.Params{
+		"message_ids": msg.ID,
+	})
 
-	attachResp, _ := ctc.Vk.MessagesGetHistoryAttachments(parameters)
-	parameters["start_from"] = attachResp.NextFrom
-	for _, val := range attachResp.Items {
-		log.Println(val.Attachment.Photo)
-	}
-	attachResp, _ = ctc.Vk.MessagesGetHistoryAttachments(parameters)
-	for _, val := range attachResp.Items {
-		log.Println(val.Attachment.Photo)
-	}
+	attachments := fullMSG.Items[0].Attachments
 
-	log.Println(msg.Attachments[0].Photo)
 	if messageText == "Назад" {
 		CommentOrder{}.PreviewProcess(ctc)
 		return &CommentOrder{}
@@ -592,6 +579,7 @@ func (state TaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) Stat
 					if err != nil {
 						log.Fatal(err)
 					}
+					log.Println(val.Photo.Sizes[num].URL)
 					upload, _ := ctc.Vk.PhotosGetMessagesUploadServer(api.Params{
 						"peer_id": ctc.User.VkID,
 					})
