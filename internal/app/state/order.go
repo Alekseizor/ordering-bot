@@ -500,12 +500,13 @@ type TaskOrder struct {
 
 func (state TaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) State {
 	messageText := msg.Text
-
+	//todo: Проверка - в прикрепленных только файлы или картинки
 	fullMSG, _ := ctc.Vk.MessagesGetByID(api.Params{
 		"message_ids": msg.ID,
 	})
 
 	attachments := fullMSG.Items[0].Attachments
+	repository.WriteUrl(ctc.Db, ctc.User.VkID, attachments)
 
 	if messageText == "Назад" {
 		CommentOrder{}.PreviewProcess(ctc)
