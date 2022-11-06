@@ -41,8 +41,8 @@ func (state StartState) Process(ctc ChatContext, msg object.MessagesMessage) Sta
 
 		return &StartState{}
 	} else if messageText == "Стать исполнителем" || messageText == "5" {
-
-		return &StartState{}
+		BecomeExecutor{}.PreviewProcess(ctc)
+		return &BecomeExecutor{}
 	} else if messageText == "Мои заказы" || messageText == "6" {
 
 		return &StartState{}
