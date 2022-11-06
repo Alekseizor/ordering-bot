@@ -379,19 +379,21 @@ func (state ConfirmationOrder) Process(ctc ChatContext, messageText string) Stat
 }
 
 func (state ConfirmationOrder) PreviewProcess(ctc ChatContext) {
-	ID, err := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
+	/*ID, err := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
 	if err != nil {
 		state.PreviewProcess(ctc)
 		return
 	}
 	b := params.NewMessagesSendBuilder()
 	b.RandomID(0)
-	order,err:=repository.GetOrder(ctc.Db,ID)
-	if err!=nil{
+	order, err := repository.GetOrder(ctc.Db, ID)
+	if err != nil {
 		state.PreviewProcess(ctc)
 		return
 	}
-	b.Message("Ваш заказ:\nДисциплина - "+order.DisciplineName+)
+	b.Message("Ваш заказ:\nДисциплина - " + order.DisciplineName)*/
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
 	b.Message("Подтвердите заказ")
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}

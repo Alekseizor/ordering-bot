@@ -3,7 +3,7 @@ package ds
 import "time"
 
 type Order struct {
-	Id                  int
+	Id                  int        `db:"id"`
 	CustomerVkID        int        `db:"customer_vk_id"`
 	DisciplineID        int        `db:"discipline_id"`
 	DisciplineName      string     `db:"discipline_id"`
