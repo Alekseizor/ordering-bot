@@ -2,6 +2,7 @@ package state
 
 import (
 	"context"
+	"github.com/Alekseizor/ordering-bot/internal/app/config"
 	"github.com/Alekseizor/ordering-bot/internal/app/ds"
 	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/SevereCloud/vksdk/v2/api/params"
@@ -41,6 +42,10 @@ func (state StartState) Process(ctc ChatContext, msg object.MessagesMessage) Sta
 
 		return &StartState{}
 	} else if messageText == "Стать исполнителем" || messageText == "5" {
+		if ctc.User.VkID == config.FromContext(*ctc.Ctx).AdminID {
+			CabinetAdmin{}.PreviewProcess(ctc)
+			return &CabinetAdmin{}
+		}
 		BecomeExecutor{}.PreviewProcess(ctc)
 		return &BecomeExecutor{}
 	} else if messageText == "Мои заказы" || messageText == "6" {

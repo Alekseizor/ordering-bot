@@ -149,6 +149,9 @@ func (a *App) Run(ctx context.Context) error {
 			(&(state.EditCommentOrder{})).Name():  &(state.EditCommentOrder{}),
 			(&(state.BecomeExecutor{})).Name():    &(state.BecomeExecutor{}),
 			(&(state.ExecHistoryOrders{})).Name(): &(state.ExecHistoryOrders{}),
+			(&(state.WriteAdmin{})).Name():        &(state.WriteAdmin{}),
+			(&(state.CabinetAdmin{})).Name():      &(state.CabinetAdmin{}),
+			(&(state.UnloadTable{})).Name():       &(state.UnloadTable{}),
 		}
 		ctc := state.ChatContext{
 			User: BotUser,
