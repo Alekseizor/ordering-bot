@@ -3,10 +3,9 @@ package repository
 import (
 	"database/sql"
 	"github.com/Alekseizor/ordering-bot/internal/app/ds"
-	"github.com/SevereCloud/vksdk/v2/object"
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 )
 
 func GetIDOrder(Db *sqlx.DB, VkID int) (int, error) {
@@ -26,7 +25,7 @@ func GetIDOrder(Db *sqlx.DB, VkID int) (int, error) {
 
 func GetOrder(Db *sqlx.DB, ID int) (ds.Order, error) {
 	var order ds.Order
-	err := Db.QueryRow("SELECT * from orders WHERE id =$1", ID).Scan(&order.Id, &order.CustomerVkID, &order.CustomersComment, &order.ExecutorVkID, &order.DisciplineID, &order.DateOrder, &order.DateFinish, &order.Price, &order.PayoutAdmin, &order.PayoutExecutors, &order.OrderTask, pq.Array(&order.DocsUrl), pq.Array(&order.ImagesUrl))
+	err := Db.QueryRow("SELECT * from orders WHERE id =$1", ID).Scan(&order.Id, &order.CustomerVkID, &order.CustomersComment, &order.ExecutorVkID, &order.DisciplineID, &order.DateOrder, &order.DateFinish, &order.Price, &order.PayoutAdmin, &order.PayoutExecutors, &order.OrderTask)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Println("Row with id unknown")
@@ -39,35 +38,42 @@ func GetOrder(Db *sqlx.DB, ID int) (ds.Order, error) {
 	return order, err
 }
 
-func WriteUrl(Db *sqlx.DB, VkID int, attachments []object.MessagesMessageAttachment) {
-	var docsURL, imagesURL []string
-	var num int
-	for _, val := range attachments {
-		switch val.Type {
-		case "doc":
-			docsURL = append(docsURL, val.Doc.URL)
-		case "photo":
-			for i, a := range val.Photo.Sizes {
-				if a.Type == "z" {
-					num = i
-					break
-				}
-				if a.Type == "x" {
-					num = i
-				}
-			}
-			imagesURL = append(imagesURL, val.Photo.Sizes[num].URL)
-		default:
+func GetCompleteOrder(Db *sqlx.DB, VkID int) (string, error) {
+	var output string
+	ID, err := GetIDOrder(Db, VkID)
+	if err != nil {
+		log.WithError(err).Error("can`t get id with user vk id")
+		return output, err
+	}
+	order, err := GetOrder(Db, ID)
+	if err != nil {
+		return output, err
+	}
+	disciplineName, err := GetDisciplineName(Db, order.DisciplineID)
+	if err != nil {
+		return output, err
+	}
+	dateFinish := strconv.Itoa(order.DateFinish.Day()) + "." + order.DateFinish.Format("01") + "." + strconv.Itoa(order.DateFinish.Year())
+	var orderTask string
+	if order.OrderTask != nil {
+		orderTask = *order.OrderTask
+	}
+	state := GetState(Db, VkID)
+	switch state {
+	case "ChoiceTime":
+		output = "Ваш заказ:\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04")
+		break
+	case "TaskOrder", "EditDiscipline", "EditDate", "EditTime", "EditTaskOrder", "EditCommentOrder":
+		if order.CustomersComment != nil {
+			customerComment := *order.CustomersComment
+			output = "Проверьте заказ:\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask + "\nКомментарий к заказу - " + customerComment //вывод заказа пользователя
+			break
+		} else {
+			output = "Проверьте заказ:\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask //вывод заказа пользователя
 			break
 		}
+	default:
+		break
 	}
-	ID, err := GetIDOrder(Db, VkID)
-	log.Println(docsURL)
-	log.Println(imagesURL)
-	res, err := Db.Exec("UPDATE orders SET (docs_url, images_url) = ($1, $2) WHERE id=$3", pq.Array(docsURL), pq.Array(imagesURL), ID)
-	log.Println(res)
-	if err != nil {
-		log.WithError(err).Error("can`t record docs or images url")
-	}
-
+	return output, nil
 }

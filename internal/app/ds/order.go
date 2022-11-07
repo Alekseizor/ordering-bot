@@ -17,8 +17,4 @@ type Order struct {
 	PayoutAdmin      *bool     `db:"payout_admin"`
 	PayoutExecutors  *bool     `db:"payout_executors"`
 	OrderTask        *string   `db:"order_task"`
-	DocsUrl          []string  `db:"docs_url"`
-	ImagesUrl        []string  `db:"images_url"`
-	//DocsUrl          *pq.StringArray `db:"docs_url"`
-	//ImagesUrl        *pq.StringArray `db:"images_url"`
 }

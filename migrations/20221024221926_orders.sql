@@ -12,9 +12,7 @@ CREATE TABLE IF NOT EXISTS orders
     price                bigint CHECK ( price > 0 ),
     payout_admin         bool,
     payout_executors     bool,
-    order_task           text,
-    docs_url             text[],
-    images_url           text[]
+    order_task           text
 );
 -- +goose StatementEnd
 

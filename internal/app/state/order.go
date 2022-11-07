@@ -1,33 +1,17 @@
 package state
 
 import (
-	"bytes"
 	"database/sql"
-	"encoding/json"
 	"github.com/Alekseizor/ordering-bot/internal/app/conversion"
 	"github.com/Alekseizor/ordering-bot/internal/app/repository"
 	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/SevereCloud/vksdk/v2/api/params"
 	"github.com/SevereCloud/vksdk/v2/object"
 	log "github.com/sirupsen/logrus"
-	"io"
-	"mime/multipart"
-	"net/http"
 	"strconv"
-	"strings"
 	"time"
 	"unicode/utf8"
 )
-
-type docsPhoto struct {
-	Server int    `json:"server"`
-	Photo  string `json:"photo"`
-	Hash   string `json:"hash"`
-}
-
-type docsDoc struct {
-	File string `json:"file"`
-}
 
 //////////////////////////////////////////////////////////
 type OrderState struct {
@@ -408,25 +392,14 @@ func (state ConfirmationOrder) Process(ctc ChatContext, msg object.MessagesMessa
 }
 
 func (state ConfirmationOrder) PreviewProcess(ctc ChatContext) {
-	ID, err := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
+	output, err := repository.GetCompleteOrder(ctc.Db, ctc.User.VkID)
 	if err != nil {
-		state.PreviewProcess(ctc)
-		return
-	}
-	order, err := repository.GetOrder(ctc.Db, ID)
-	if err != nil {
-		state.PreviewProcess(ctc)
-		return
-	}
-	disciplineName, err := repository.GetDisciplineName(ctc.Db, order.DisciplineID)
-	if err != nil {
-		state.PreviewProcess(ctc)
-		return
+		log.Println("Failed to get orders output")
+		log.Error(err)
 	}
 	b := params.NewMessagesSendBuilder()
 	b.RandomID(0)
-	dateFinish := strconv.Itoa(order.DateFinish.Day()) + "." + order.DateFinish.Format("01") + "." + strconv.Itoa(order.DateFinish.Year())
-	b.Message("Ваш заказ:\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04")) //вывод заказа пользователя
+	b.Message(output)
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
@@ -436,7 +409,7 @@ func (state ConfirmationOrder) PreviewProcess(ctc ChatContext) {
 	b.Keyboard(k)
 	_, err = ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
-		log.Println("Failed to get record")
+		log.Println("Failed to send order: state ConfirmationOrder")
 		log.Error(err)
 	}
 }
@@ -506,7 +479,9 @@ func (state TaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) Stat
 	})
 
 	attachments := fullMSG.Items[0].Attachments
-	repository.WriteUrl(ctc.Db, ctc.User.VkID, attachments)
+	if attachments != nil {
+		repository.WriteUrl(ctc.Db, ctc.User.VkID, attachments)
+	}
 
 	if messageText == "Назад" {
 		CommentOrder{}.PreviewProcess(ctc)
@@ -519,124 +494,6 @@ func (state TaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) Stat
 			state.PreviewProcess(ctc)
 			return &TaskOrder{}
 		}
-		log.Println(len(attachments))
-		if len(attachments) > 0 {
-			for _, val := range attachments {
-				log.Println(val.Type)
-				switch val.Type {
-				case "doc":
-					resp, err := http.Get(val.Doc.URL)
-					if err != nil {
-						log.Fatal(err)
-					}
-					upload, _ := ctc.Vk.DocsGetMessagesUploadServer(api.Params{
-						"type":    "doc",
-						"peer_id": ctc.User.VkID,
-					})
-					file, err := io.ReadAll(resp.Body)
-					fileBody := bytes.NewReader(file)
-					log.Println(upload.UploadURL)
-					body := &bytes.Buffer{}
-					writer := multipart.NewWriter(body)
-					part, _ := writer.CreateFormFile("file", val.Doc.Title)
-					io.Copy(part, fileBody)
-					writer.Close()
-
-					r, _ := http.NewRequest("POST", upload.UploadURL, bytes.NewReader(body.Bytes()))
-					r.Header.Set("Content-Type", writer.FormDataContentType())
-					client := &http.Client{}
-					response, _ := client.Do(r)
-					docs := &docsDoc{}
-					json.NewDecoder(response.Body).Decode(docs)
-					log.Println(docs.File)
-					savedDoc, _ := ctc.Vk.DocsSave(api.Params{
-						"file":  docs.File,
-						"title": val.Doc.Title,
-					})
-					log.Println(savedDoc.Doc.ID)
-					b := params.NewMessagesSendBuilder()
-					b.RandomID(0)
-					b.PeerID(ctc.User.VkID)
-					b.Attachment("doc" + strconv.Itoa(savedDoc.Doc.OwnerID) + "_" + strconv.Itoa(savedDoc.Doc.ID) + "_" + savedDoc.Doc.AccessKey)
-					_, err = ctc.Vk.MessagesSend(b.Params)
-					if err != nil {
-						log.Println("Failed to get record")
-						log.Error(err)
-					}
-					break
-				case "photo":
-					var num int
-					for i, a := range val.Photo.Sizes {
-						if a.Type == "z" {
-							num = i
-							break
-						}
-						if a.Type == "x" {
-							num = i
-						}
-					}
-					log.Println(num)
-					resp, err := http.Get(val.Photo.Sizes[num].URL)
-					if err != nil {
-						log.Fatal(err)
-					}
-					log.Println(val.Photo.Sizes[num].URL)
-					upload, _ := ctc.Vk.PhotosGetMessagesUploadServer(api.Params{
-						"peer_id": ctc.User.VkID,
-					})
-
-					//substr := strings.Split(val.Photo.Sizes[num].URL, "?")
-					substr := strings.Split(strings.Split(val.Photo.Sizes[num].URL, "?")[0], "/")
-					photoTitle := substr[len(substr)-1]
-
-					//log.Println(val.Photo.Sizes)
-					file, err := io.ReadAll(resp.Body)
-					fileBody := bytes.NewReader(file)
-					body := &bytes.Buffer{}
-					writer := multipart.NewWriter(body)
-					part, _ := writer.CreateFormFile("file", photoTitle)
-					io.Copy(part, fileBody)
-					writer.Close()
-
-					r, _ := http.NewRequest("POST", upload.UploadURL, bytes.NewReader(body.Bytes()))
-					r.Header.Set("Content-Type", writer.FormDataContentType())
-					client := &http.Client{}
-					response, _ := client.Do(r)
-					docs := &docsPhoto{}
-					json.NewDecoder(response.Body).Decode(docs)
-					savedPhoto, _ := ctc.Vk.PhotosSaveMessagesPhoto(api.Params{
-						"photo":  docs.Photo,
-						"server": docs.Server,
-						"hash":   docs.Hash,
-					})
-
-					b := params.NewMessagesSendBuilder()
-					b.RandomID(0)
-					b.PeerID(ctc.User.VkID)
-					b.Attachment("photo" + strconv.Itoa(savedPhoto[0].OwnerID) + "_" + strconv.Itoa(savedPhoto[0].ID) + "_" + savedPhoto[0].AccessKey)
-					//b.Attachment("photo" + strconv.Itoa(val.Photo.OwnerID) + "_" + strconv.Itoa(val.Photo.ID) + "_" + val.Photo.AccessKey)
-					_, err = ctc.Vk.MessagesSend(b.Params)
-					if err != nil {
-						log.Println("Failed to get record")
-						log.Error(err)
-					}
-					break
-				default:
-					break
-				}
-			}
-		}
-		//b := params.NewMessagesSendBuilder()
-		//b.RandomID(0)
-		//b.PeerID(ctc.User.VkID)
-		//b.Attachment("doc" + strconv.Itoa(owner_id) + "_" + strconv.Itoa(id) + "_" + access_key)
-		//log.Println("doc" + strconv.Itoa(owner_id) + "_" + strconv.Itoa(id) + "_" + access_key)
-		//_, err = ctc.Vk.MessagesSend(b.Params)
-		//if err != nil {
-		//	log.Println("Failed to get record")
-		//	log.Error(err)
-		//}
-
 		OrderCompleted{}.PreviewProcess(ctc)
 		return &OrderCompleted{}
 	}
@@ -688,52 +545,24 @@ func (state OrderCompleted) Process(ctc ChatContext, msg object.MessagesMessage)
 }
 
 func (state OrderCompleted) PreviewProcess(ctc ChatContext) {
-	ID, err := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
-	if err != nil {
-		state.PreviewProcess(ctc)
-		return
-	}
 	b := params.NewMessagesSendBuilder()
 	b.RandomID(0)
 	b.Message("Информация получена")
 	b.PeerID(ctc.User.VkID)
-	_, err = ctc.Vk.MessagesSend(b.Params)
+	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
 		log.Println("Failed to get record")
 		log.Error(err)
 	}
-	order, err := repository.GetOrder(ctc.Db, ID)
+	output, err := repository.GetCompleteOrder(ctc.Db, ctc.User.VkID)
 	if err != nil {
-		state.PreviewProcess(ctc)
-		return
+		log.Println("Failed to get orders output")
+		log.Error(err)
 	}
-	disciplineName, err := repository.GetDisciplineName(ctc.Db, order.DisciplineID)
-	if err != nil {
-		state.PreviewProcess(ctc)
-		return
-	}
-	dateFinish := strconv.Itoa(order.DateFinish.Day()) + "." + order.DateFinish.Format("01") + "." + strconv.Itoa(order.DateFinish.Year())
-	orderTask := *order.OrderTask
+	b.Message(output)
 
-	if order.CustomersComment != nil {
-		customerComment := *order.CustomersComment
-		b.Message("Проверьте заказ:\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask + "\nКомментарий к заказу - " + customerComment) //вывод заказа пользователя
-	} else {
-		b.Message("Проверьте заказ:\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask) //вывод заказа пользователя
-	}
-	//attch := msg.Attachments
-	//access_key := attch[0].Photo.AccessKey
-	//owner_id := attch[0].Photo.OwnerID
-	//id := attch[0].Photo.ID
-	//b := params.NewMessagesSendBuilder()
-	//b.RandomID(0)
-	//b.PeerID(ctc.User.VkID)
-	//b.Attachment("photo" + strconv.Itoa(owner_id) + "_" + strconv.Itoa(id) + "_" + access_key)
-	//_, err = ctc.Vk.MessagesSend(b.Params)
-	//if err != nil {
-	//	log.Println("Failed to get record")
-	//	log.Error(err)
-	//}
+	output, _ = repository.GetImages(ctc.Vk, ctc.Db, ctc.User.VkID)
+	b.Attachment(output)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
 	k.AddTextButton("Оформить заказ", "", "secondary")
