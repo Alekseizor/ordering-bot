@@ -56,21 +56,8 @@ func WriteUrl(Db *sqlx.DB, VkID int, attachments []object.MessagesMessageAttachm
 	}
 }
 
-func GetDocs(VK *api.VK, Db *sqlx.DB, VkID int) (string, error) {
-	var urls, titles []string
+func GetDocs(VK *api.VK, urls, titles []string, VkID int) (string, error) {
 	var attachments []string
-	ID, err := GetIDOrder(Db, VkID)
-	err = Db.QueryRow("SELECT docs_url, docs_title FROM docs WHERE order_id =$1", ID).Scan(pq.Array(&urls), pq.Array(&titles))
-	if err != nil {
-		if err == sql.ErrNoRows {
-			log.Println("Row with VkID unknown")
-		} else {
-			log.Println("Couldn't find the line with the docs_url")
-		}
-		log.Error(err)
-	}
-	log.Println(urls)
-	log.Println(titles)
 
 	for i, val := range urls {
 		resp, err := http.Get(val)
@@ -104,19 +91,9 @@ func GetDocs(VK *api.VK, Db *sqlx.DB, VkID int) (string, error) {
 	return strings.Join(attachments[:], ","), nil
 }
 
-func GetImages(VK *api.VK, Db *sqlx.DB, VkID int) (string, error) {
-	var urls []string
+func GetImages(VK *api.VK, urls []string, VkID int) (string, error) {
+
 	var attachments []string
-	ID, err := GetIDOrder(Db, VkID)
-	err = Db.QueryRow("SELECT images_url FROM docs WHERE order_id =$1", ID).Scan(pq.Array(&urls))
-	if err != nil {
-		if err == sql.ErrNoRows {
-			log.Println("Row with VkID unknown")
-		} else {
-			log.Println("Couldn't find the line with the docs_url")
-		}
-		log.Error(err)
-	}
 
 	for _, val := range urls {
 		resp, err := http.Get(val)
@@ -156,8 +133,30 @@ func GetImages(VK *api.VK, Db *sqlx.DB, VkID int) (string, error) {
 }
 
 func GetAttachments(VK *api.VK, Db *sqlx.DB, VkID int) (string, error) {
+	var docsURL, imagesURL, titles []string
 	var output string
-	//todo: перенести запросы в базу данных сюда из функций get docs и get images +
-	// + в них передевать соответственно только нужные поля из базы данных
+	//todo: обработка ошибок + Добавить поле attachment в таблицу docs и подгружать оттуда строку для b.attachment в случае +
+	// + если файлы уже загружены на сервер ВК
+	ID, err := GetIDOrder(Db, VkID)
+	err = Db.QueryRow("SELECT docs_url, docs_title, images_url FROM docs WHERE order_id =$1", ID).Scan(pq.Array(&docsURL), pq.Array(&titles), pq.Array(&imagesURL))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Println("Row with VkID unknown")
+		} else {
+			log.Println("Couldn't find the line with the docs_url")
+		}
+		log.Error(err)
+	}
+	var outputDocs, outputImages string
+	if docsURL != nil {
+		outputDocs, _ = GetDocs(VK, docsURL, titles, VkID)
+		output += outputDocs
+	}
+	output += ","
+	if imagesURL != nil {
+		outputImages, _ = GetImages(VK, imagesURL, VkID)
+		output += outputImages
+	}
+
 	return output, nil
 }

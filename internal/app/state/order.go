@@ -18,6 +18,7 @@ type OrderState struct {
 }
 
 func (state OrderState) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	//todo: Стейт с выбором типа заказа (РК, ДЗ, Курсовая и т.д.)
 	messageText := msg.Text
 	if messageText == "Выбор дисциплины" {
 		ChoiceDiscipline{}.PreviewProcess(ctc)
@@ -426,7 +427,7 @@ func (state CommentOrder) Process(ctc ChatContext, msg object.MessagesMessage) S
 	if messageText == "Назад" {
 		ConfirmationOrder{}.PreviewProcess(ctc)
 		return &ConfirmationOrder{}
-	} else if messageText == "Отправить комментарий" {
+	} else if messageText == "Отправить комментарий" { //todo: убрать кнопку Отправить комментарий
 		TaskOrder{}.PreviewProcess(ctc)
 		return &TaskOrder{}
 	} else {
@@ -528,7 +529,7 @@ func (state OrderCompleted) Process(ctc ChatContext, msg object.MessagesMessage)
 	if messageText == "Оформить заказ" {
 		TaskOrder{}.PreviewProcess(ctc)
 		return &TaskOrder{}
-		//state.PreviewProcess(ctc) todo: обратно вернуть
+		//state.PreviewProcess(ctc)
 		//return &OrderCompleted{}
 	} else if messageText == "Редактировать заказ" {
 		OrderChange{}.PreviewProcess(ctc)
@@ -560,9 +561,9 @@ func (state OrderCompleted) PreviewProcess(ctc ChatContext) {
 		log.Error(err)
 	}
 	b.Message(output)
+	attachment, _ := repository.GetAttachments(ctc.Vk, ctc.Db, ctc.User.VkID)
 
-	output, _ = repository.GetImages(ctc.Vk, ctc.Db, ctc.User.VkID)
-	b.Attachment(output)
+	b.Attachment(attachment)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
 	k.AddTextButton("Оформить заказ", "", "secondary")
