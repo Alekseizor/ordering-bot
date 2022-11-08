@@ -8,6 +8,7 @@ import (
 
 func GetDisciplineName(Db *sqlx.DB, disciplineID int) (string, error) {
 	var disciplineName string
+
 	err := Db.QueryRow("SELECT name from disciplines WHERE id =$1", disciplineID).Scan(&disciplineName)
 	if err != nil {
 		if err == sql.ErrNoRows {
