@@ -14,6 +14,57 @@ import (
 )
 
 //////////////////////////////////////////////////////////
+type OrderType struct {
+}
+
+func (state OrderType) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
+	if messageText == "Назад в главное меню" {
+		StartState{}.PreviewProcess(ctc)
+		return &StartState{}
+	} else if messageText == "Рубежный контроль" || messageText == "Домашнее задание" || messageText == "Консультация" || messageText == "Курсовая работа" || messageText == "Экзамен" {
+		_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders(customer_vk_id,type_order,date_order) VALUES ($1, $2,$3)", ctc.User.VkID, messageText, time.Now().UTC().Add(time.Hour*3))
+		if err != nil {
+			log.WithError(err).Error("cant set order on state OrderType")
+			state.PreviewProcess(ctc)
+			return &OrderType{}
+		}
+		ChoiceDiscipline{}.PreviewProcess(ctc)
+		return &ChoiceDiscipline{}
+	} else {
+		state.PreviewProcess(ctc)
+		return &OrderType{}
+	}
+}
+
+func (state OrderType) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.Message("Выберите вид работы:")
+	b.PeerID(ctc.User.VkID)
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Рубежный контроль", "", "secondary")
+	k.AddTextButton("Домашнее задание", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Консультация", "", "secondary")
+	k.AddTextButton("Курсовая работа", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Экзамен", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Назад в главное меню", "", "secondary")
+	b.Keyboard(k)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed send on state OrderType")
+		log.Error(err)
+	}
+}
+func (state OrderType) Name() string {
+	return "OrderType"
+}
+
+//////////////////////////////////////////////////////////
 type OrderState struct {
 }
 
@@ -58,10 +109,11 @@ type ChoiceDiscipline struct {
 }
 
 func (state ChoiceDiscipline) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	ID, _ := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
 	messageText := msg.Text
-	if messageText == "Назад в главное меню" {
-		StartState{}.PreviewProcess(ctc)
-		return &StartState{}
+	if messageText == "Назад" {
+		OrderType{}.PreviewProcess(ctc)
+		return &OrderType{}
 	} else {
 		messageInt, err := strconv.Atoi(messageText)
 		if err != nil {
@@ -71,9 +123,9 @@ func (state ChoiceDiscipline) Process(ctc ChatContext, msg object.MessagesMessag
 			state.PreviewProcess(ctc)
 			return &ChoiceDiscipline{}
 		} else {
-			_, err := ctc.Db.ExecContext(*ctc.Ctx, "INSERT INTO orders(customer_vk_id,discipline_id,date_order) VALUES ($1, $2,$3)", ctc.User.VkID, messageInt, time.Now().UTC().Add(time.Hour*3))
+			_, err := ctc.Db.ExecContext(*ctc.Ctx, "UPDATE orders SET discipline_id =$1 WHERE id=$2", messageInt, ID)
 			if err != nil {
-				log.WithError(err).Error("cant set user")
+				log.WithError(err).Error("cant set order on state ChoiceDiscipline")
 				state.PreviewProcess(ctc)
 				return &ChoiceDiscipline{}
 			}
@@ -100,7 +152,7 @@ func (state ChoiceDiscipline) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Назад в главное меню", "", "secondary")
+	k.AddTextButton("Назад", "", "secondary")
 	b.Keyboard(k)
 	_, err = ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -632,6 +684,9 @@ func (state OrderChange) Process(ctc ChatContext, msg object.MessagesMessage) St
 	if messageText == "Назад" {
 		OrderCompleted{}.PreviewProcess(ctc)
 		return &OrderCompleted{}
+	} else if messageText == "Вид работы" {
+		EditType{}.PreviewProcess(ctc)
+		return &EditType{}
 	} else if messageText == "Вид дисциплины" {
 		EditDiscipline{}.PreviewProcess(ctc)
 		return &EditDiscipline{}
@@ -659,6 +714,8 @@ func (state OrderChange) PreviewProcess(ctc ChatContext) {
 	b.Message("Выберите пункт для редактирования")
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Вид работы", "", "secondary")
 	k.AddRow()
 	k.AddTextButton("Вид дисциплины", "", "secondary")
 	k.AddRow()

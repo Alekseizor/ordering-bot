@@ -25,7 +25,7 @@ func GetIDOrder(Db *sqlx.DB, VkID int) (int, error) {
 
 func GetOrder(Db *sqlx.DB, ID int) (ds.Order, error) {
 	var order ds.Order
-	err := Db.QueryRow("SELECT * from orders WHERE id =$1", ID).Scan(&order.Id, &order.CustomerVkID, &order.CustomersComment, &order.ExecutorVkID, &order.DisciplineID, &order.DateOrder, &order.DateFinish, &order.Price, &order.PayoutAdmin, &order.PayoutExecutors, &order.OrderTask)
+	err := Db.QueryRow("SELECT * from orders WHERE id =$1", ID).Scan(&order.Id, &order.CustomerVkID, &order.CustomersComment, &order.ExecutorVkID, &order.TypeOrder, &order.DisciplineID, &order.DateOrder, &order.DateFinish, &order.Price, &order.PayoutAdmin, &order.PayoutExecutors, &order.OrderTask)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Println("Row with id unknown")
@@ -61,15 +61,15 @@ func GetCompleteOrder(Db *sqlx.DB, VkID int) (string, error) {
 	state := GetState(Db, VkID)
 	switch state {
 	case "ChoiceTime", "CommentOrder": //todo: На стейте TaskOrder при нажатии назад пишет второй вариант вместо первого (хз надо ли фиксить)
-		output = "Ваш заказ:\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04")
+		output = "Ваш заказ:\nВид работы - " + order.TypeOrder + "\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04")
 		break
-	case "TaskOrder", "EditDiscipline", "EditDate", "EditTime", "EditTaskOrder", "EditCommentOrder", "OrderChange", "OrderCancel", "OrderCompleted":
+	case "TaskOrder", "EditType", "EditDiscipline", "EditDate", "EditTime", "EditTaskOrder", "EditCommentOrder", "OrderChange", "OrderCancel", "OrderCompleted":
 		if order.CustomersComment != nil {
 			customerComment := *order.CustomersComment
-			output = "Проверьте заказ:\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask + "\nКомментарий к заказу - " + customerComment //вывод заказа пользователя
+			output = "Проверьте заказ:\nВид работы - " + order.TypeOrder + "\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask + "\nКомментарий к заказу - " + customerComment //вывод заказа пользователя
 			break
 		} else {
-			output = "Проверьте заказ:\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask //вывод заказа пользователя
+			output = "Проверьте заказ:\nВид работы - " + order.TypeOrder + "\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask //вывод заказа пользователя
 			break
 		}
 	default:

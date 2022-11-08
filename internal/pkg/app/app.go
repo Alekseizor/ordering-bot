@@ -132,6 +132,7 @@ func (a *App) Run(ctx context.Context) error {
 		}
 		strInState := map[string]state.State{
 			(&(state.StartState{})).Name():        &(state.StartState{}),
+			(&(state.OrderType{})).Name():         &(state.OrderType{}),
 			(&(state.OrderState{})).Name():        &(state.OrderState{}),
 			(&(state.ChoiceDiscipline{})).Name():  &(state.ChoiceDiscipline{}),
 			(&(state.ChoiceDate{})).Name():        &(state.ChoiceDate{}),
@@ -142,6 +143,7 @@ func (a *App) Run(ctx context.Context) error {
 			(&(state.OrderCompleted{})).Name():    &(state.OrderCompleted{}),
 			(&(state.OrderCancel{})).Name():       &(state.OrderCancel{}),
 			(&(state.OrderChange{})).Name():       &(state.OrderChange{}),
+			(&(state.EditType{})).Name():          &(state.EditType{}),
 			(&(state.EditDiscipline{})).Name():    &(state.EditDiscipline{}),
 			(&(state.EditDate{})).Name():          &(state.EditDate{}),
 			(&(state.EditTime{})).Name():          &(state.EditTime{}),

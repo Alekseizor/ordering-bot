@@ -13,6 +13,58 @@ import (
 	"unicode/utf8"
 )
 
+/////////////////////////////////////////////////////////
+type EditType struct {
+}
+
+func (state EditType) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
+	if messageText == "Назад к редактированию" {
+		OrderChange{}.PreviewProcess(ctc)
+		return &OrderChange{}
+	} else if messageText == "Рубежный контроль" || messageText == "Домашнее задание" || messageText == "Консультация" || messageText == "Курсовая работа" || messageText == "Экзамен" {
+		ID, err := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
+		_, err = ctc.Db.ExecContext(*ctc.Ctx, "UPDATE orders SET type_order = $1 WHERE id=$2", messageText, ID)
+		if err != nil {
+			log.WithError(err).Error("cant update order on state EditType")
+			state.PreviewProcess(ctc)
+			return &EditType{}
+		}
+		OrderCompleted{}.PreviewProcess(ctc)
+		return &OrderCompleted{}
+	} else {
+		state.PreviewProcess(ctc)
+		return &EditType{}
+	}
+}
+
+func (state EditType) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.Message("Выберите вид работы:")
+	b.PeerID(ctc.User.VkID)
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Рубежный контроль", "", "secondary")
+	k.AddTextButton("Домашнее задание", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Консультация", "", "secondary")
+	k.AddTextButton("Курсовая работа", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Экзамен", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Назад к редактированию", "", "secondary")
+	b.Keyboard(k)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed send on state OrderType")
+		log.Error(err)
+	}
+}
+func (state EditType) Name() string {
+	return "EditType"
+}
+
 //////////////////////////////////////////////////////////
 type EditDiscipline struct {
 }

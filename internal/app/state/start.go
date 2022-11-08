@@ -30,8 +30,8 @@ type StartState struct {
 func (state StartState) Process(ctc ChatContext, msg object.MessagesMessage) State {
 	messageText := msg.Text
 	if messageText == "Сделать заказ" || messageText == "1" {
-		OrderState{}.PreviewProcess(ctc)
-		return &OrderState{}
+		OrderType{}.PreviewProcess(ctc)
+		return &OrderType{}
 	} else if messageText == "Связаться с исполнителем" || messageText == "2" {
 
 		return &StartState{}

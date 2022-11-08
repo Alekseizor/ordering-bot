@@ -9,6 +9,7 @@ type Order struct {
 	CustomerVkID     int       `db:"customer_vk_id"`
 	CustomersComment *string   `db:"customers_comment"`
 	ExecutorVkID     *int      `db:"executor_vk_id"`
+	TypeOrder        string    `db:"type_order"`
 	DisciplineID     int       `db:"discipline_id"`
 	DateOrder        time.Time `db:"date_order"`
 	DateFinish       time.Time `db:"date_finish"`
