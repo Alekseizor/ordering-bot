@@ -132,6 +132,7 @@ func (a *App) Run(ctx context.Context) error {
 		}
 		strInState := map[string]state.State{
 			(&(state.StartState{})).Name():        &(state.StartState{}),
+			(&(state.OrderType{})).Name():         &(state.OrderType{}),
 			(&(state.OrderState{})).Name():        &(state.OrderState{}),
 			(&(state.ChoiceDiscipline{})).Name():  &(state.ChoiceDiscipline{}),
 			(&(state.ChoiceDate{})).Name():        &(state.ChoiceDate{}),
@@ -142,6 +143,12 @@ func (a *App) Run(ctx context.Context) error {
 			(&(state.OrderCompleted{})).Name():    &(state.OrderCompleted{}),
 			(&(state.OrderCancel{})).Name():       &(state.OrderCancel{}),
 			(&(state.OrderChange{})).Name():       &(state.OrderChange{}),
+			(&(state.EditType{})).Name():          &(state.EditType{}),
+			(&(state.EditDiscipline{})).Name():    &(state.EditDiscipline{}),
+			(&(state.EditDate{})).Name():          &(state.EditDate{}),
+			(&(state.EditTime{})).Name():          &(state.EditTime{}),
+			(&(state.EditTaskOrder{})).Name():     &(state.EditTaskOrder{}),
+			(&(state.EditCommentOrder{})).Name():  &(state.EditCommentOrder{}),
 		}
 		ctc := state.ChatContext{
 			User: BotUser,
@@ -151,7 +158,7 @@ func (a *App) Run(ctx context.Context) error {
 		}
 		//cfg := config.FromContext(*ctc.Ctx).Bot
 		step := strInState[BotUser.State]
-		nextStep := step.Process(ctc, obj.Message.Text)
+		nextStep := step.Process(ctc, obj.Message)
 		BotUser.State = nextStep.Name()
 		_, err = a.db.ExecContext(a.ctx, "UPDATE users SET State = $1 WHERE vk_id = $2", BotUser.State, BotUser.VkID)
 		if err != nil {
