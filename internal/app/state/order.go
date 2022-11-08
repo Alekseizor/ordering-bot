@@ -69,7 +69,6 @@ type OrderState struct {
 }
 
 func (state OrderState) Process(ctc ChatContext, msg object.MessagesMessage) State {
-	//todo: Стейт с выбором типа заказа (РК, ДЗ, Курсовая и т.д.)
 	messageText := msg.Text
 	if messageText == "Выбор дисциплины" {
 		ChoiceDiscipline{}.PreviewProcess(ctc)
@@ -529,6 +528,11 @@ func (state TaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) Stat
 
 	attachments := fullMSG.Items[0].Attachments
 	if attachments != nil {
+		//for _, val := range attachments {
+		//	if val.Type != "doc" || val.Type != "photo" {
+		//
+		//	}
+		//}
 		repository.WriteUrl(ctc.Db, ctc.User.VkID, attachments)
 	}
 
@@ -716,15 +720,15 @@ func (state OrderChange) PreviewProcess(ctc ChatContext) {
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
 	k.AddTextButton("Вид работы", "", "secondary")
-	k.AddRow()
+	//k.AddRow()
 	k.AddTextButton("Вид дисциплины", "", "secondary")
 	k.AddRow()
 	k.AddTextButton("Дата исполнения заказа", "", "secondary")
-	k.AddRow()
+	//k.AddRow()
 	k.AddTextButton("Время исполнения заказа", "", "secondary")
 	k.AddRow()
 	k.AddTextButton("Информация по заказу", "", "secondary")
-	k.AddRow()
+	//k.AddRow()
 	k.AddTextButton("Комментарий к заказу", "", "secondary")
 	k.AddRow()
 	k.AddTextButton("Назад", "", "secondary")

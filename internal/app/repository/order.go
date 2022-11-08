@@ -60,7 +60,7 @@ func GetCompleteOrder(Db *sqlx.DB, VkID int) (string, error) {
 	}
 	state := GetState(Db, VkID)
 	switch state {
-	case "ChoiceTime", "CommentOrder": //todo: На стейте TaskOrder при нажатии назад пишет второй вариант вместо первого (хз надо ли фиксить)
+	case "ChoiceTime", "CommentOrder", "ConfirmationOrder": //todo: На стейте TaskOrder при нажатии назад пишет второй вариант вместо первого (хз надо ли фиксить)
 		output = "Ваш заказ:\nВид работы - " + order.TypeOrder + "\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04")
 		break
 	case "TaskOrder", "EditType", "EditDiscipline", "EditDate", "EditTime", "EditTaskOrder", "EditCommentOrder", "OrderChange", "OrderCancel", "OrderCompleted":
