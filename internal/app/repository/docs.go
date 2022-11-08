@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"github.com/Alekseizor/ordering-bot/internal/app/ds"
 	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/SevereCloud/vksdk/v2/object"
 	"github.com/jmoiron/sqlx"
@@ -133,12 +134,10 @@ func GetImages(VK *api.VK, urls []string, VkID int) (string, error) {
 }
 
 func GetAttachments(VK *api.VK, Db *sqlx.DB, VkID int) (string, error) {
-	var docsURL, imagesURL, titles []string
-	var output string
-	//todo: обработка ошибок + Добавить поле attachment в таблицу docs и подгружать оттуда строку для b.attachment в случае +
-	// + если файлы уже загружены на сервер ВК
+	var attach ds.Docs
+	//todo: обработка ошибок
 	ID, err := GetIDOrder(Db, VkID)
-	err = Db.QueryRow("SELECT docs_url, docs_title, images_url FROM docs WHERE order_id =$1", ID).Scan(pq.Array(&docsURL), pq.Array(&titles), pq.Array(&imagesURL))
+	err = Db.QueryRow("SELECT docs_url, docs_title, images_url, attachment FROM docs WHERE order_id =$1", ID).Scan(pq.Array(&attach.DocsUrl), pq.Array(&attach.DocsTitle), pq.Array(&attach.ImagesUrl), &attach.Attachment)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Println("Row with VkID unknown")
@@ -147,16 +146,34 @@ func GetAttachments(VK *api.VK, Db *sqlx.DB, VkID int) (string, error) {
 		}
 		log.Error(err)
 	}
-	var outputDocs, outputImages string
-	if docsURL != nil {
-		outputDocs, _ = GetDocs(VK, docsURL, titles, VkID)
-		output += outputDocs
-	}
-	output += ","
-	if imagesURL != nil {
-		outputImages, _ = GetImages(VK, imagesURL, VkID)
-		output += outputImages
+	if attach.Attachment != nil {
+		log.Println("Used quick attachment")
+		return *attach.Attachment, nil
+	} else {
+		var output, outputDocs, outputImages string
+		if attach.DocsUrl != nil {
+			outputDocs, _ = GetDocs(VK, attach.DocsUrl, attach.DocsTitle, VkID)
+			output += outputDocs + ","
+		}
+		if attach.ImagesUrl != nil {
+			outputImages, _ = GetImages(VK, attach.ImagesUrl, VkID)
+			output += outputImages
+		}
+		_, err = Db.Exec("UPDATE docs SET attachment = $1 WHERE order_id =$2", output, ID)
+		if err != nil {
+			log.WithError(err).Error("can`t set attachment in docs")
+		}
+		log.Println("Attachment set")
+		return output, nil
 	}
 
-	return output, nil
+}
+
+func ClearAttachments(Db *sqlx.DB, VkID int) error {
+	ID, err := GetIDOrder(Db, VkID)
+	_, err = Db.Exec("UPDATE docs SET attachment = $1 WHERE order_id =$2", nil, ID)
+	if err != nil {
+		log.WithError(err).Error("can`t set attachment in docs")
+	}
+	return err
 }

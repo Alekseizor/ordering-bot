@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/Alekseizor/ordering-bot/internal/app/conversion"
 	"github.com/Alekseizor/ordering-bot/internal/app/repository"
+	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/SevereCloud/vksdk/v2/api/params"
 	"github.com/SevereCloud/vksdk/v2/object"
 	log "github.com/sirupsen/logrus"
@@ -328,6 +329,17 @@ type EditTaskOrder struct {
 
 func (state EditTaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) State {
 	messageText := msg.Text
+	_ = repository.ClearAttachments(ctc.Db, ctc.User.VkID)
+	fullMSG, _ := ctc.Vk.MessagesGetByID(api.Params{
+		"message_ids": msg.ID,
+	})
+
+	attachments := fullMSG.Items[0].Attachments
+
+	if attachments != nil {
+		repository.WriteUrl(ctc.Db, ctc.User.VkID, attachments)
+	}
+
 	if messageText == "Назад к редактированию" {
 		OrderChange{}.PreviewProcess(ctc)
 		return &OrderChange{}
@@ -375,9 +387,6 @@ func (state EditCommentOrder) Process(ctc ChatContext, msg object.MessagesMessag
 	if messageText == "Назад к редактированию" {
 		OrderChange{}.PreviewProcess(ctc)
 		return &OrderChange{}
-	} else if messageText == "Отправить комментарий" {
-		OrderCompleted{}.PreviewProcess(ctc)
-		return &OrderCompleted{}
 	} else {
 		if utf8.RuneCountInString(messageText) > 150 {
 			log.Println("Text is to large")
@@ -388,11 +397,10 @@ func (state EditCommentOrder) Process(ctc ChatContext, msg object.MessagesMessag
 		_, err = ctc.Db.ExecContext(*ctc.Ctx, "UPDATE orders SET customers_comment =$1 WHERE id=$2", messageText, ID)
 		if err != nil {
 			log.WithError(err).Error("cant record users comment")
-			state.PreviewProcess(ctc)
-			return &EditCommentOrder{}
+
 		}
-		//CommentOrder{}.PreviewProcess(ctc)
-		return &EditCommentOrder{}
+		OrderCompleted{}.PreviewProcess(ctc)
+		return &OrderCompleted{}
 	}
 
 }
@@ -404,7 +412,6 @@ func (state EditCommentOrder) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Отправить комментарий", "", "secondary")
 	k.AddTextButton("Назад к редактированию", "", "secondary")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)

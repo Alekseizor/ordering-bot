@@ -60,10 +60,10 @@ func GetCompleteOrder(Db *sqlx.DB, VkID int) (string, error) {
 	}
 	state := GetState(Db, VkID)
 	switch state {
-	case "ChoiceTime":
+	case "ChoiceTime", "CommentOrder": //todo: На стейте TaskOrder при нажатии назад пишет второй вариант вместо первого (хз надо ли фиксить)
 		output = "Ваш заказ:\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04")
 		break
-	case "TaskOrder", "EditDiscipline", "EditDate", "EditTime", "EditTaskOrder", "EditCommentOrder":
+	case "TaskOrder", "EditDiscipline", "EditDate", "EditTime", "EditTaskOrder", "EditCommentOrder", "OrderChange", "OrderCancel", "OrderCompleted":
 		if order.CustomersComment != nil {
 			customerComment := *order.CustomersComment
 			output = "Проверьте заказ:\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask + "\nКомментарий к заказу - " + customerComment //вывод заказа пользователя

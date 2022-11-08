@@ -427,9 +427,6 @@ func (state CommentOrder) Process(ctc ChatContext, msg object.MessagesMessage) S
 	if messageText == "Назад" {
 		ConfirmationOrder{}.PreviewProcess(ctc)
 		return &ConfirmationOrder{}
-	} else if messageText == "Отправить комментарий" { //todo: убрать кнопку Отправить комментарий
-		TaskOrder{}.PreviewProcess(ctc)
-		return &TaskOrder{}
 	} else {
 		if utf8.RuneCountInString(messageText) > 150 {
 			log.Println("Text is to large")
@@ -440,11 +437,10 @@ func (state CommentOrder) Process(ctc ChatContext, msg object.MessagesMessage) S
 		_, err = ctc.Db.ExecContext(*ctc.Ctx, "UPDATE orders SET customers_comment =$1 WHERE id=$2", messageText, ID)
 		if err != nil {
 			log.WithError(err).Error("cant record users comment")
-			state.PreviewProcess(ctc)
-			return &CommentOrder{}
 		}
-		//CommentOrder{}.PreviewProcess(ctc)
-		return &CommentOrder{}
+
+		TaskOrder{}.PreviewProcess(ctc)
+		return &TaskOrder{}
 	}
 }
 
@@ -455,7 +451,7 @@ func (state CommentOrder) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Отправить комментарий", "", "secondary")
+	//k.AddTextButton("Отправить комментарий", "", "secondary")
 	k.AddTextButton("Назад", "", "secondary")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
@@ -485,8 +481,8 @@ func (state TaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) Stat
 	}
 
 	if messageText == "Назад" {
-		CommentOrder{}.PreviewProcess(ctc)
-		return &CommentOrder{}
+		ConfirmationOrder{}.PreviewProcess(ctc)
+		return &ConfirmationOrder{}
 	} else {
 		ID, err := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
 		_, err = ctc.Db.ExecContext(*ctc.Ctx, "UPDATE orders SET order_task =$1 WHERE id=$2", messageText, ID)
@@ -503,7 +499,7 @@ func (state TaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) Stat
 func (state TaskOrder) PreviewProcess(ctc ChatContext) {
 	b := params.NewMessagesSendBuilder()
 	b.RandomID(0)
-	b.Message("Отправьте фото,текстовое описание или документ задания в формате pdf одним сообщением!")
+	b.Message("Отправьте фото,текстовое описание или документ задания (любой формат) одним сообщением!")
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
@@ -527,8 +523,8 @@ type OrderCompleted struct {
 func (state OrderCompleted) Process(ctc ChatContext, msg object.MessagesMessage) State {
 	messageText := msg.Text
 	if messageText == "Оформить заказ" {
-		TaskOrder{}.PreviewProcess(ctc)
-		return &TaskOrder{}
+		EditTaskOrder{}.PreviewProcess(ctc)
+		return &EditTaskOrder{}
 		//state.PreviewProcess(ctc)
 		//return &OrderCompleted{}
 	} else if messageText == "Редактировать заказ" {
@@ -548,7 +544,7 @@ func (state OrderCompleted) Process(ctc ChatContext, msg object.MessagesMessage)
 func (state OrderCompleted) PreviewProcess(ctc ChatContext) {
 	b := params.NewMessagesSendBuilder()
 	b.RandomID(0)
-	b.Message("Информация получена")
+	b.Message("Информация получена. Ваш заказ загружается")
 	b.PeerID(ctc.User.VkID)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {

@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS docs
     docs_url             text[],
     docs_title           text[],
     images_url           text[],
+    attachment           text,
     order_id                   int UNIQUE ,
     constraint fk_customer
         FOREIGN KEY(order_id)
