@@ -108,7 +108,7 @@ func CreateRespTable(db *sqlx.DB, firstDateStr string, secondDateStr string, clo
 		f.SetCellValue("Sheet1", "H1", order.PercentExecutor)
 		f.SetCellValue("Sheet1", "I1", (*order.Price)*uint64(order.PercentExecutor)/100)
 		f.SetCellValue("Sheet1", "J1", (*order.Price)*(100-uint64(order.PercentExecutor))/100)
-		f.SetCellValue("Sheet1", "K1", order.)
+		//f.SetCellValue("Sheet1", "K1", order.)
 		f.SetCellValue("Sheet1", "L1", "Статус оплаты")
 		//if err := rows.Scan(&order.ID, &alb.Title, &alb.Artist,
 		//	&alb.Price, &alb.Quantity); err != nil {
