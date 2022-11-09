@@ -14,6 +14,7 @@ type Order struct {
 	DateFinish       time.Time `db:"date_finish"`
 	TimeFinish       time.Time `db:"time_finish"`
 	Price            *uint64   `db:"price"`
+	PercentExecutor  uint      `db:"percent_executor"`
 	PayoutAdmin      *bool     `db:"payout_admin"`
 	PayoutExecutors  *bool     `db:"payout_executors"`
 	OrderTask        *string   `db:"order_task"`

@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/Alekseizor/ordering-bot/internal/app/excel"
 	"github.com/SevereCloud/vksdk/v2/api/params"
 	"github.com/SevereCloud/vksdk/v2/object"
 	log "github.com/sirupsen/logrus"
@@ -286,12 +287,16 @@ type AllUnloadingUnclose struct {
 func (state AllUnloadingUnclose) Process(ctc ChatContext, msg object.MessagesMessage) State {
 	messageText := msg.Text
 	if messageText == "Да" {
-		CreateRespTableOneExec("12.11.2006", "12.11.2099")
+		table := excel.CreateRespTableOneExec(ctc.Db, "12.11.2006", "12.11.2099", ctc.User.VkID)
+
 	} else if messageText == "Нет" {
-		CreateRespTable(ctc.Db, "12.11.2006", "12.11.2099")
+		table := excel.CreateRespTable(ctc.Db, "12.11.2006", "12.11.2099")
 		UnloadingUnclose{}.PreviewProcess(ctc)
 		return &UnloadingUnclose{}
 	} else if messageText == "Назад" {
+		UnloadingUnclose{}.PreviewProcess(ctc)
+		return &UnloadingUnclose{}
+	} else {
 		state.PreviewProcess(ctc)
 		return &AllUnloadingUnclose{}
 	}
