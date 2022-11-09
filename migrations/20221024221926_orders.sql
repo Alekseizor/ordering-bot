@@ -6,12 +6,14 @@ CREATE TABLE IF NOT EXISTS orders
     customer_vk_id       int                      NOT NULL,
     customers_comment    text,
     executor_vk_id       int,
-    discipline_id        int  NOT NULL,
+    type_order           text NOT NULL,
+    discipline_id        int,
     date_order          timestamp with time zone,
     date_finish          timestamp with time zone,
     price                bigint CHECK ( price > 0 ),
     payout_admin         bool,
-    payout_executors     bool
+    payout_executors     bool,
+    order_task           text
 );
 -- +goose StatementEnd
 

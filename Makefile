@@ -1,4 +1,4 @@
-PWD = $(shell pwd)
+PWD = ${CURDIR}
 # Название сервиса
 SERVICE_NAME = vkbot
 # Директория с proto файлами

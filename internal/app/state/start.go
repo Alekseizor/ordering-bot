@@ -2,6 +2,7 @@ package state
 
 import (
 	"context"
+	"github.com/Alekseizor/ordering-bot/internal/app/config"
 	"github.com/Alekseizor/ordering-bot/internal/app/ds"
 	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/SevereCloud/vksdk/v2/api/params"
@@ -16,9 +17,10 @@ type ChatContext struct {
 	Ctx  *context.Context
 	Db   *sqlx.DB
 }
+
 type State interface {
-	Name() string                      //получаем название состояния в виде строки, чтобы в дальнейшем куда-то записать(БД)
-	Process(ChatContext, string) State //нужно взять контекст, посмотреть на каком состоянии сейчас пользователь, метод должен вернуть состояние
+	Name() string                                      //получаем название состояния в виде строки, чтобы в дальнейшем куда-то записать(БД)
+	Process(ChatContext, object.MessagesMessage) State //нужно взять контекст, посмотреть на каком состоянии сейчас пользователь, метод должен вернуть состояние
 	PreviewProcess(ctc ChatContext)
 }
 
@@ -26,10 +28,11 @@ type State interface {
 type StartState struct {
 }
 
-func (state StartState) Process(ctc ChatContext, messageText string) State {
+func (state StartState) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
 	if messageText == "Сделать заказ" || messageText == "1" {
-		OrderState{}.PreviewProcess(ctc)
-		return &OrderState{}
+		OrderType{}.PreviewProcess(ctc)
+		return &OrderType{}
 	} else if messageText == "Связаться с исполнителем" || messageText == "2" {
 
 		return &StartState{}
@@ -39,8 +42,12 @@ func (state StartState) Process(ctc ChatContext, messageText string) State {
 
 		return &StartState{}
 	} else if messageText == "Стать исполнителем" || messageText == "5" {
-
-		return &StartState{}
+		if ctc.User.VkID == config.FromContext(*ctc.Ctx).AdminID {
+			CabinetAdmin{}.PreviewProcess(ctc)
+			return &CabinetAdmin{}
+		}
+		BecomeExecutor{}.PreviewProcess(ctc)
+		return &BecomeExecutor{}
 	} else if messageText == "Мои заказы" || messageText == "6" {
 
 		return &StartState{}

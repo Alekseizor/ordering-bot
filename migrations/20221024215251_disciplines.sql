@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS disciplines
 INSERT INTO disciplines (name)
 VALUES ('MATLAB');
 INSERT INTO disciplines (name)
-VALUES ('MS Office(Word, Excel, Access)');
+VALUES ('MS Office(Word, excel, Access)');
 INSERT INTO disciplines (name)
 VALUES ('Mathcad');
 INSERT INTO disciplines (name)
