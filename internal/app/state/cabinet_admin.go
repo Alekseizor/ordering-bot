@@ -2,6 +2,7 @@ package state
 
 import (
 	"database/sql"
+	"github.com/Alekseizor/ordering-bot/internal/app/repository"
 	"github.com/SevereCloud/vksdk/v2/api/params"
 	"github.com/SevereCloud/vksdk/v2/object"
 	"github.com/lib/pq"
@@ -23,8 +24,8 @@ func (state CabinetAdmin) Process(ctc ChatContext, msg object.MessagesMessage) S
 		AddExecutor{}.PreviewProcess(ctc)
 		return &AddExecutor{}
 	} else if messageText == "Управлять исполнителями" {
-		StartState{}.PreviewProcess(ctc)
-		return &StartState{}
+		ManageExecutors{}.PreviewProcess(ctc)
+		return &ManageExecutors{}
 	} else if messageText == "Изменить реквизиты" {
 		StartState{}.PreviewProcess(ctc)
 		return &StartState{}
@@ -492,4 +493,167 @@ func (state AddExecDisciplines) PreviewProcess(ctc ChatContext) {
 
 func (state AddExecDisciplines) Name() string {
 	return "AddExecDisciplines"
+}
+
+//////////////////////////////////////////////////////////
+type ManageExecutors struct {
+}
+
+func (state ManageExecutors) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
+	if messageText == "Назад" {
+		CabinetAdmin{}.PreviewProcess(ctc)
+		return &CabinetAdmin{}
+	} else if messageText == "Удалить исполнителя" {
+		DeleteExecutorID{}.PreviewProcess(ctc)
+		return &DeleteExecutorID{}
+	} else if messageText == "Изменить предметы исполнителю" {
+		state.PreviewProcess(ctc)
+		return &ManageExecutors{}
+	} else if messageText == "Изменить комиссию для исполнителя" {
+		state.PreviewProcess(ctc)
+		return &ManageExecutors{}
+	} else {
+		state.PreviewProcess(ctc)
+		return &ManageExecutors{}
+	}
+}
+
+func (state ManageExecutors) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.PeerID(ctc.User.VkID)
+	b.Message("Выберите нужный пункт")
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Удалить исполнителя", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Изменить предметы исполнителю", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Изменить комиссию для исполнителя", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Назад", "", "secondary")
+	b.Keyboard(k)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+
+func (state ManageExecutors) Name() string {
+	return "ManageExecutors"
+}
+
+var ExecutorDeleteID int
+
+//////////////////////////////////////////////////////////
+type DeleteExecutorID struct {
+}
+
+func (state DeleteExecutorID) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
+	if messageText == "Назад" {
+		ManageExecutors{}.PreviewProcess(ctc)
+		return &ManageExecutors{}
+	} else {
+		ExecutorDeleteID = 0
+		execID, err := strconv.Atoi(messageText)
+		ExecutorDeleteID = execID
+		if err != nil {
+			state.PreviewProcess(ctc)
+			return &DeleteExecutorID{}
+		} else {
+			log.Println(ExecutorDeleteID)
+			check, _ := repository.IsExecutor(ctc.Db, ExecutorDeleteID)
+			log.Println(check)
+			if check {
+				DeleteExecutor{}.PreviewProcess(ctc)
+				return &DeleteExecutor{}
+			} else {
+				b := params.NewMessagesSendBuilder()
+				b.RandomID(0)
+				b.Message("Такого исполнителя не существует. Проверьте ID ВК")
+				b.PeerID(ctc.User.VkID)
+				_, err := ctc.Vk.MessagesSend(b.Params)
+				if err != nil {
+					log.Println("Failed to send message on state DeleteExecutorID")
+					log.Error(err)
+				}
+				state.PreviewProcess(ctc)
+				return &DeleteExecutorID{}
+			}
+		}
+	}
+}
+
+func (state DeleteExecutorID) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.Message("Введите ID ВК исполнителя")
+	b.PeerID(ctc.User.VkID)
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Назад", "", "secondary")
+	b.Keyboard(k)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+
+func (state DeleteExecutorID) Name() string {
+	return "DeleteExecutorID"
+}
+
+//////////////////////////////////////////////////////////
+type DeleteExecutor struct {
+}
+
+func (state DeleteExecutor) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
+	if messageText == "Нет" {
+		ManageExecutors{}.PreviewProcess(ctc)
+		return &ManageExecutors{}
+	} else if messageText == "Да" {
+		_ = repository.DeleteExecutor(ctc.Db, ExecutorDeleteID)
+		b := params.NewMessagesSendBuilder()
+		b.RandomID(0)
+		b.Message("Исполнитель удалён")
+		b.PeerID(ctc.User.VkID)
+		_, err := ctc.Vk.MessagesSend(b.Params)
+		if err != nil {
+			log.Println("Failed to send message on state DeleteExecutor")
+			log.Error(err)
+		}
+		ExecutorDeleteID = 0
+		ManageExecutors{}.PreviewProcess(ctc)
+		return &ManageExecutors{}
+	} else {
+		state.PreviewProcess(ctc)
+		return &DeleteExecutor{}
+	}
+}
+
+func (state DeleteExecutor) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.Message("Удалить исполнителя " + string(ExecutorDeleteID) + "?")
+	b.PeerID(ctc.User.VkID)
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Да", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Нет", "", "secondary")
+	b.Keyboard(k)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+
+func (state DeleteExecutor) Name() string {
+	return "DeleteExecutor"
 }

@@ -157,6 +157,9 @@ func (a *App) Run(ctx context.Context) error {
 			(&(state.AddExecutor{})).Name():        &(state.AddExecutor{}),
 			(&(state.AddExecID{})).Name():          &(state.AddExecID{}),
 			(&(state.AddExecDisciplines{})).Name(): &(state.AddExecDisciplines{}),
+			(&(state.ManageExecutors{})).Name():    &(state.ManageExecutors{}),
+			(&(state.DeleteExecutorID{})).Name():   &(state.DeleteExecutorID{}),
+			(&(state.DeleteExecutor{})).Name():     &(state.DeleteExecutor{}),
 		}
 		ctc := state.ChatContext{
 			User: BotUser,
