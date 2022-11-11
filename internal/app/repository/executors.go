@@ -32,3 +32,11 @@ func DeleteExecutor(Db *sqlx.DB, vkID int) error {
 	}
 	return nil
 }
+
+//func AddUniqueDiscipline(num string, disciplines *map[string]bool, unique *[]string) {
+//	if disciplines[num] {
+//		return // Already in the map
+//	}
+//	unique = append(unique, num)
+//	disciplines[num] = true
+//}

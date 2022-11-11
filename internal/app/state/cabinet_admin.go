@@ -2,6 +2,7 @@ package state
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/Alekseizor/ordering-bot/internal/app/repository"
 	"github.com/SevereCloud/vksdk/v2/api/params"
 	"github.com/SevereCloud/vksdk/v2/object"
@@ -430,11 +431,19 @@ func (state AddExecDisciplines) Process(ctc ChatContext, msg object.MessagesMess
 		return &AddExecID{}
 	} else {
 		disciplines := strings.Split(messageText, " ")
+		var disciplinesBD []int
+		uniqueDisciplines := make(map[string]bool)
 		for _, val := range disciplines {
 			num, err := strconv.Atoi(val)
 			if err != nil || (num < 1) || (num > 52) {
 				state.PreviewProcess(ctc)
 				return &AddExecDisciplines{}
+			}
+			if uniqueDisciplines[val] {
+				continue
+			} else {
+				disciplinesBD = append(disciplinesBD, num)
+				uniqueDisciplines[val] = true
 			}
 		}
 		var VkID int
@@ -448,7 +457,7 @@ func (state AddExecDisciplines) Process(ctc ChatContext, msg object.MessagesMess
 			state.PreviewProcess(ctc)
 			return &AddExecDisciplines{}
 		}
-		_, err = ctc.Db.ExecContext(*ctc.Ctx, "UPDATE executors SET disciplines_id = $1 WHERE vk_id=$2", pq.Array(disciplines), VkID)
+		_, err = ctc.Db.ExecContext(*ctc.Ctx, "UPDATE executors SET disciplines_id = $1 WHERE vk_id=$2", pq.Array(disciplinesBD), VkID)
 		if err != nil {
 			log.WithError(err).Error("cant add Executor on state ChoiceDiscipline")
 			state.PreviewProcess(ctc)
@@ -458,7 +467,7 @@ func (state AddExecDisciplines) Process(ctc ChatContext, msg object.MessagesMess
 		b.RandomID(0)
 		b.PeerID(ctc.User.VkID)
 		vkID := strconv.Itoa(VkID)
-		b.Message("Исполнитель создан\nID исполнителя: " + vkID + "\nНомера выбранных предметов: " + messageText)
+		b.Message("Исполнитель создан\nID исполнителя: " + vkID + "\nНомера выбранных предметов: " + strings.Trim(strings.Replace(fmt.Sprint(disciplinesBD), " ", " ", -1), "[]"))
 		_, err = ctc.Vk.MessagesSend(b.Params)
 		if err != nil {
 			log.Println("Failed to get record")
@@ -508,11 +517,11 @@ func (state ManageExecutors) Process(ctc ChatContext, msg object.MessagesMessage
 		DeleteExecutorID{}.PreviewProcess(ctc)
 		return &DeleteExecutorID{}
 	} else if messageText == "Изменить предметы исполнителю" {
-		state.PreviewProcess(ctc)
-		return &ManageExecutors{}
+		ChangeExecutorsDisciplinesID{}.PreviewProcess(ctc)
+		return &ChangeExecutorsDisciplinesID{}
 	} else if messageText == "Изменить комиссию для исполнителя" {
-		state.PreviewProcess(ctc)
-		return &ManageExecutors{}
+		ChangeExecutorsCommissionID{}.PreviewProcess(ctc)
+		return &ChangeExecutorsCommissionID{}
 	} else {
 		state.PreviewProcess(ctc)
 		return &ManageExecutors{}
@@ -546,6 +555,8 @@ func (state ManageExecutors) Name() string {
 }
 
 var ExecutorDeleteID int
+var ExecutorChangeID int
+var ExecutorChangeCommissionID int
 
 //////////////////////////////////////////////////////////
 type DeleteExecutorID struct {
@@ -656,4 +667,271 @@ func (state DeleteExecutor) PreviewProcess(ctc ChatContext) {
 
 func (state DeleteExecutor) Name() string {
 	return "DeleteExecutor"
+}
+
+//////////////////////////////////////////////////////////
+type ChangeExecutorsDisciplinesID struct {
+}
+
+func (state ChangeExecutorsDisciplinesID) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
+	if messageText == "Назад" {
+		ManageExecutors{}.PreviewProcess(ctc)
+		return &ManageExecutors{}
+	} else {
+		ExecutorChangeID = 0
+		execID, err := strconv.Atoi(messageText)
+		ExecutorChangeID = execID
+		if err != nil {
+			state.PreviewProcess(ctc)
+			return &ChangeExecutorsDisciplinesID{}
+		} else {
+			check, _ := repository.IsExecutor(ctc.Db, ExecutorChangeID)
+			log.Println(check)
+			if check {
+				ChangeExecutorsDisciplines{}.PreviewProcess(ctc)
+				return &ChangeExecutorsDisciplines{}
+			} else {
+				b := params.NewMessagesSendBuilder()
+				b.RandomID(0)
+				b.Message("Такого исполнителя не существует. Проверьте ID ВК")
+				b.PeerID(ctc.User.VkID)
+				_, err := ctc.Vk.MessagesSend(b.Params)
+				if err != nil {
+					log.Println("Failed to send message on state DeleteExecutorID")
+					log.Error(err)
+				}
+				state.PreviewProcess(ctc)
+				return &ChangeExecutorsDisciplinesID{}
+			}
+		}
+	}
+}
+
+func (state ChangeExecutorsDisciplinesID) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.Message("Введите ID ВК исполнителя")
+	b.PeerID(ctc.User.VkID)
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Назад", "", "secondary")
+	b.Keyboard(k)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+
+func (state ChangeExecutorsDisciplinesID) Name() string {
+	return "ChangeExecutorsDisciplinesID"
+}
+
+//////////////////////////////////////////////////////////
+type ChangeExecutorsDisciplines struct {
+}
+
+func (state ChangeExecutorsDisciplines) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
+	if messageText == "Назад" {
+		ChangeExecutorsDisciplinesID{}.PreviewProcess(ctc)
+		return &ChangeExecutorsDisciplinesID{}
+	} else {
+		disciplines := strings.Split(messageText, " ")
+		var disciplinesBD []int
+		uniqueDisciplines := make(map[string]bool)
+		for _, val := range disciplines {
+			num, err := strconv.Atoi(val)
+			if err != nil || (num < 1) || (num > 52) {
+				state.PreviewProcess(ctc)
+				return &ChangeExecutorsDisciplines{}
+			}
+			if uniqueDisciplines[val] {
+				continue
+			} else {
+				disciplinesBD = append(disciplinesBD, num)
+				uniqueDisciplines[val] = true
+			}
+		}
+		_, err := ctc.Db.ExecContext(*ctc.Ctx, "UPDATE executors SET disciplines_id = $1 WHERE vk_id=$2", pq.Array(disciplinesBD), ExecutorChangeID)
+		if err != nil {
+			log.WithError(err).Error("cant change Executors disciplines on state ChangeExecutorsDisciplines")
+			state.PreviewProcess(ctc)
+			return &ChangeExecutorsDisciplines{}
+		}
+		b := params.NewMessagesSendBuilder()
+		b.RandomID(0)
+		b.PeerID(ctc.User.VkID)
+		vkID := strconv.Itoa(ExecutorChangeID)
+		b.Message("Предметы изменены\nID исполнителя: " + vkID + "\nНомера выбранных предметов: " + strings.Trim(strings.Replace(fmt.Sprint(disciplinesBD), " ", " ", -1), "[]"))
+		_, err = ctc.Vk.MessagesSend(b.Params)
+		if err != nil {
+			log.Println("Failed to get record")
+			log.Error(err)
+		}
+		CabinetAdmin{}.PreviewProcess(ctc)
+		return &CabinetAdmin{}
+	}
+}
+
+func (state ChangeExecutorsDisciplines) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.PeerID(ctc.User.VkID)
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Назад", "", "secondary")
+	b.Keyboard(k)
+	b.Message("1. MATLAB\n2. MS Office(Word, excel, Access)\n3. Mathcad\n4. Аналитическая геометрия\n5. Английский язык\n6. Детали машин\n7. Дискретная математика\n8. Инженерная и компьютерная графика\n9. Интегралы и дифференциальные уравнения\n10. Информатика\n11. История\n12. Кратные интегралы и ряды\n13. Культурология\n14. Линейная алгебра\n15. Математика\n16. Математический анализ\n17. Материаловедение\n18. Менеджмент\n19. Метрология\n20. Механика жидкости и газа\n21. Начертательная геометрия\n22. Организация производства\n23. Основы конструирования приборов\n24. Основы теории цепей\n25. Основы технологии приборостроения\n26. Политология\n27. Правоведение\n28. Практика\n29. Прикладная статистика\n30. Психология\n31. Системный анализ и принятие решений\n32. Сопротивление материалов\n33. Социология\n34. Теоретическая механика\n35. Теоретические основы электротехники\n36. Теория вероятностей\n37. Теория механизмов и машин\n38. Теория поля\n39. Теория функции комплексных переменных и операционное исчисление\n40. Теория функции нескольких переменных\n41. Термодинамика\n42. Технология конструкционных материалов\n43. Уравнения математической физики\n44. Физика\n45. Физкультура\n46. Философия\n47. Финансирование инновационной деятельности\n48. Химия\n49. Цифровые устройства и микропроцессоры\n50. Экономика\n51. Электроника\n52. Электротехника")
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+	b.Message("Введите новые номера предметов для исполнителя")
+	_, err = ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+
+func (state ChangeExecutorsDisciplines) Name() string {
+	return "ChangeExecutorsDisciplines"
+}
+
+//////////////////////////////////////////////////////////
+type ChangeExecutorsCommissionID struct {
+}
+
+func (state ChangeExecutorsCommissionID) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
+	if messageText == "Назад" {
+		ManageExecutors{}.PreviewProcess(ctc)
+		return &ManageExecutors{}
+	} else {
+		ExecutorChangeCommissionID = 0
+		execID, err := strconv.Atoi(messageText)
+		ExecutorChangeCommissionID = execID
+		if err != nil {
+			state.PreviewProcess(ctc)
+			return &ChangeExecutorsCommissionID{}
+		} else {
+			check, _ := repository.IsExecutor(ctc.Db, ExecutorChangeCommissionID)
+			log.Println(check)
+			if check {
+				ChangeExecutorsCommission{}.PreviewProcess(ctc)
+				return &ChangeExecutorsCommission{}
+			} else {
+				b := params.NewMessagesSendBuilder()
+				b.RandomID(0)
+				b.Message("Такого исполнителя не существует. Проверьте ID ВК")
+				b.PeerID(ctc.User.VkID)
+				_, err := ctc.Vk.MessagesSend(b.Params)
+				if err != nil {
+					log.Println("Failed to send message on state DeleteExecutorID")
+					log.Error(err)
+				}
+				state.PreviewProcess(ctc)
+				return &ChangeExecutorsCommissionID{}
+			}
+		}
+	}
+}
+
+func (state ChangeExecutorsCommissionID) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.Message("Введите ID ВК исполнителя")
+	b.PeerID(ctc.User.VkID)
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Назад", "", "secondary")
+	b.Keyboard(k)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+
+func (state ChangeExecutorsCommissionID) Name() string {
+	return "ChangeExecutorsCommissionID"
+}
+
+//////////////////////////////////////////////////////////
+type ChangeExecutorsCommission struct {
+}
+
+func (state ChangeExecutorsCommission) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
+	if messageText == "Назад" {
+		ChangeExecutorsCommissionID{}.PreviewProcess(ctc)
+		return &ChangeExecutorsCommissionID{}
+	} else {
+		newCommission, err := strconv.Atoi(messageText)
+		if err != nil || newCommission < 0 || newCommission > 100 {
+			state.PreviewProcess(ctc)
+			return &ChangeExecutorsCommission{}
+		}
+		var oldCommission *int
+		err = ctc.Db.QueryRow("SELECT commission_service FROM executors WHERE vk_id=$1", ExecutorChangeCommissionID).Scan(&oldCommission)
+		if err != nil {
+			log.WithError(err).Error("cant change Executors commission_service on state ChangeExecutorsCommission")
+			state.PreviewProcess(ctc)
+			return &ChangeExecutorsCommission{}
+		}
+		_, err = ctc.Db.ExecContext(*ctc.Ctx, "UPDATE executors SET commission_service = $1 WHERE vk_id=$2", newCommission, ExecutorChangeCommissionID)
+		if err != nil {
+			log.WithError(err).Error("cant change Executors commission_service on state ChangeExecutorsCommission")
+			state.PreviewProcess(ctc)
+			return &ChangeExecutorsCommission{}
+		}
+		b := params.NewMessagesSendBuilder()
+		b.RandomID(0)
+		b.PeerID(ctc.User.VkID)
+		var oldComm string
+		if oldCommission == nil {
+			oldComm = "0"
+		} else {
+			oldComm = strconv.Itoa(*oldCommission)
+		}
+		newComm := strconv.Itoa(newCommission)
+		b.Message("Комиссия сервиса изменена с " + oldComm + " до " + newComm)
+		_, err = ctc.Vk.MessagesSend(b.Params)
+		if err != nil {
+			log.Println("Failed to get record")
+			log.Error(err)
+		}
+		b.PeerID(ExecutorChangeCommissionID)
+		b.Message("Комиссия сервиса изменена с " + oldComm + " до " + newComm)
+		_, err = ctc.Vk.MessagesSend(b.Params)
+		if err != nil {
+			log.Println("Failed to get record")
+			log.Error(err)
+		}
+		CabinetAdmin{}.PreviewProcess(ctc)
+		return &CabinetAdmin{}
+	}
+}
+
+func (state ChangeExecutorsCommission) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.PeerID(ctc.User.VkID)
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Назад", "", "secondary")
+	b.Keyboard(k)
+	b.Message("Введите новую комиссию для исполнителя")
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+
+func (state ChangeExecutorsCommission) Name() string {
+	return "ChangeExecutorsCommission"
 }
