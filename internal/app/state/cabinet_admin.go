@@ -1,7 +1,6 @@
 package state
 
 import (
-
 	"database/sql"
 	"fmt"
 	"github.com/Alekseizor/ordering-bot/internal/app/repository"
@@ -13,10 +12,7 @@ import (
 	"strings"
 )
 
-
 var firstDateStr, secondDateStr, close string
-
-
 
 type CabinetAdmin struct {
 }
@@ -122,10 +118,8 @@ func (state UnloadTable) Name() string {
 	return "UnloadTable"
 }
 
-
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type SelectionUnload struct {
-
 }
 
 func (state SelectionUnload) Process(ctc ChatContext, msg object.MessagesMessage) State {
@@ -168,8 +162,6 @@ func (state SelectionUnload) PreviewProcess(ctc ChatContext) {
 func (state SelectionUnload) Name() string {
 	return "SelectionUnload"
 }
-
-
 
 // ////////////////////////////////////////////////////////
 type AddExecutor struct {
@@ -772,5 +764,4 @@ func (state ChangeExecutorsCommission) PreviewProcess(ctc ChatContext) {
 
 func (state ChangeExecutorsCommission) Name() string {
 	return "ChangeExecutorsCommission"
-
-
+}
