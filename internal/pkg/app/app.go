@@ -163,6 +163,7 @@ func (a *App) Run(ctx context.Context) error {
 			(&(state.SelectionDateClear{})).Name():           &(state.SelectionDateClear{}),
 			(&(state.InputFirstDateClear{})).Name():          &(state.InputFirstDateClear{}),
 			(&(state.InputSecondDateClear{})).Name():         &(state.InputSecondDateClear{}),
+			(&(state.ChangeRequisiteExecutor{})).Name():      &(state.ChangeRequisiteExecutor{}),
 		}
 		ctc := state.ChatContext{
 			User: BotUser,
