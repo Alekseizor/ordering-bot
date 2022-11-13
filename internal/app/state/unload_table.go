@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type SelectionDateUnload struct {
 }
 
@@ -78,7 +78,7 @@ func (state SelectionDateUnload) Name() string {
 	return "SelectionDateUnload"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type InputFirstDateUnload struct {
 }
 
@@ -119,7 +119,7 @@ func (state InputFirstDateUnload) Name() string {
 	return "InputFirstDateUnload"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type InputSecondDateUnload struct {
 }
 
@@ -182,7 +182,7 @@ func (state InputSecondDateUnload) Name() string {
 	return "InputSecondDateUnload"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type SelectionAllOrPersonalUnload struct {
 }
 
@@ -221,8 +221,8 @@ func (state SelectionAllOrPersonalUnload) Process(ctc ChatContext, msg object.Me
 			log.Println("Failed to get record")
 			log.Error(err)
 		}
-		SelectionAllOrPersonalUnload{}.PreviewProcess(ctc)
-		return &SelectionAllOrPersonalUnload{}
+		CabinetAdmin{}.PreviewProcess(ctc)
+		return &CabinetAdmin{}
 	} else if messageText == "Назад" {
 		SelectionDateUnload{}.PreviewProcess(ctc)
 		return &SelectionDateUnload{}
@@ -256,7 +256,7 @@ func (state SelectionAllOrPersonalUnload) Name() string {
 	return "SelectionAllOrPersonalUnload"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type PersonalUnload struct {
 }
 
@@ -298,8 +298,8 @@ func (state PersonalUnload) Process(ctc ChatContext, msg object.MessagesMessage)
 			state.PreviewProcess(ctc)
 			return &PersonalUnload{}
 		}
-		state.PreviewProcess(ctc)
-		return &PersonalUnload{}
+		CabinetAdmin{}.PreviewProcess(ctc)
+		return &CabinetAdmin{}
 	} else if messageText == "Назад" {
 		SelectionAllOrPersonalUnload{}.PreviewProcess(ctc)
 		return &SelectionAllOrPersonalUnload{}

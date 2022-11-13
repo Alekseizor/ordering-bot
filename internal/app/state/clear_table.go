@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type SelectionDateClear struct {
 }
 
@@ -45,8 +45,8 @@ func (state SelectionDateClear) Process(ctc ChatContext, msg object.MessagesMess
 			SelectionDateClear{}.PreviewProcess(ctc)
 			return &SelectionDateClear{}
 		}
-		SelectionDateClear{}.PreviewProcess(ctc)
-		return &SelectionDateClear{}
+		CabinetAdmin{}.PreviewProcess(ctc)
+		return &CabinetAdmin{}
 	} else if messageText == "По дате(с ДД.ММ.ГГ до ДД.ММ.ГГ)" {
 		InputFirstDateClear{}.PreviewProcess(ctc)
 		return &InputFirstDateClear{}
@@ -83,7 +83,7 @@ func (state SelectionDateClear) Name() string {
 	return "SelectionDateClear"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type InputFirstDateClear struct {
 }
 
@@ -124,7 +124,7 @@ func (state InputFirstDateClear) Name() string {
 	return "InputFirstDateClear"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type InputSecondDateClear struct {
 }
 
