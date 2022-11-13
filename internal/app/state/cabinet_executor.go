@@ -15,6 +15,10 @@ type BecomeExecutor struct {
 
 func (state BecomeExecutor) Process(ctc ChatContext, msg object.MessagesMessage) State {
 	messageText := msg.Text
+	if messageText == "Изменить реквизиты" {
+		ChangeRequisiteExecutor{}.PreviewProcess(ctc)
+		return &ChangeRequisiteExecutor{}
+	}
 	if messageText == "История заказов" {
 		ExecHistoryOrders{}.PreviewProcess(ctc)
 		return &ExecHistoryOrders{}
@@ -52,23 +56,26 @@ func (state BecomeExecutor) PreviewProcess(ctc ChatContext) {
 			log.Println("Couldn't find the line with the order")
 		}
 		log.Error(err)
-	}
-	b := params.NewMessagesSendBuilder()
-	b.RandomID(0)
-	b.Message("Выбери нужный пункт")
-	b.PeerID(ctc.User.VkID)
-	k := &object.MessagesKeyboard{}
-	k.AddRow()
-	k.AddTextButton("История заказов", "", "secondary")
-	k.AddRow()
-	k.AddTextButton("Написать администратору", "", "secondary")
-	k.AddRow()
-	k.AddTextButton("Назад", "", "secondary")
-	b.Keyboard(k)
-	_, err = ctc.Vk.MessagesSend(b.Params)
-	if err != nil {
-		log.Println("Failed to get record")
-		log.Error(err)
+	} else {
+		b := params.NewMessagesSendBuilder()
+		b.RandomID(0)
+		b.Message("Выбери нужный пункт")
+		b.PeerID(ctc.User.VkID)
+		k := &object.MessagesKeyboard{}
+		k.AddRow()
+		k.AddTextButton("Изменить реквизиты", "", "secondary")
+		k.AddRow()
+		k.AddTextButton("История заказов", "", "secondary")
+		k.AddRow()
+		k.AddTextButton("Написать администратору", "", "secondary")
+		k.AddRow()
+		k.AddTextButton("Назад", "", "secondary")
+		b.Keyboard(k)
+		_, err = ctc.Vk.MessagesSend(b.Params)
+		if err != nil {
+			log.Println("Failed to get record")
+			log.Error(err)
+		}
 	}
 }
 
@@ -179,4 +186,52 @@ func (state WriteAdmin) PreviewProcess(ctc ChatContext) {
 
 func (state WriteAdmin) Name() string {
 	return "WriteAdmin"
+}
+
+//////////////////////////////////////////////////////////
+type ChangeRequisiteExecutor struct {
+}
+
+func (state ChangeRequisiteExecutor) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
+	if messageText == "Назад" {
+		BecomeExecutor{}.PreviewProcess(ctc)
+		return &BecomeExecutor{}
+	} else {
+		_, err := ctc.Db.ExecContext(*ctc.Ctx, "UPDATE executors SET requisite =$1 WHERE vk_id=$2", messageText, ctc.User.VkID)
+		if err != nil {
+			log.WithError(err).Error("cant set order on state ChangeRequisiteExecutor")
+		}
+		b := params.NewMessagesSendBuilder()
+		b.RandomID(0)
+		b.Message("Реквизиты успешно изменены!")
+		b.PeerID(ctc.User.VkID)
+		_, err = ctc.Vk.MessagesSend(b.Params)
+		if err != nil {
+			log.Println("Failed to get record")
+			log.Error(err)
+		}
+		BecomeExecutor{}.PreviewProcess(ctc)
+		return &BecomeExecutor{}
+	}
+}
+
+func (state ChangeRequisiteExecutor) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.Message("Напишите одним сообщением свои реквизиты.\n Например:\nСбербанк:1111222233334444\nТинькофф:5555666677778888")
+	b.PeerID(ctc.User.VkID)
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Назад", "", "secondary")
+	b.Keyboard(k)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+
+func (state ChangeRequisiteExecutor) Name() string {
+	return "ChangeRequisiteExecutor"
 }

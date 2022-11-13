@@ -9,4 +9,5 @@ type Executor struct {
 	AmountRating      int     `db:"amount_rating"`
 	Profit            float64 `db:"profit"`
 	AmountOrders      int     `db:"amount_orders"`
+  Requisite         string  `db:"requisite"`
 }

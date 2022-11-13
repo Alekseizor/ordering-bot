@@ -13,7 +13,7 @@ import (
 func CreateRespTable(db *sqlx.DB, firstDateStr string, secondDateStr string, close string, ID ...int) (*excelize.File, error) {
 	var rows *sql.Rows
 	var err error
-	var requestStr, orderStatus string
+	var requestStr, orderStatus, requisite string
 	f := excelize.NewFile() //создали новый лист
 	f.SetCellValue("Sheet1", "A1", "Номер заказа")
 	f.SetCellValue("Sheet1", "B1", "Заказчик")
@@ -25,8 +25,9 @@ func CreateRespTable(db *sqlx.DB, firstDateStr string, secondDateStr string, clo
 	f.SetCellValue("Sheet1", "H1", "Процент исполнителя")
 	f.SetCellValue("Sheet1", "I1", "Прибыль исполнителя")
 	f.SetCellValue("Sheet1", "J1", "Прибыль сервиса")
-	f.SetCellValue("Sheet1", "K1", "Статус заказа")
-	f.SetCellValue("Sheet1", "L1", "Статус оплаты")
+	f.SetCellValue("Sheet1", "K1", "Реквизиты исполнителя")
+	f.SetCellValue("Sheet1", "L1", "Статус заказа")
+	f.SetCellValue("Sheet1", "M1", "Статус оплаты")
 	log.Println(close)
 	if ID == nil {
 		if close == "Общая таблица" {
@@ -70,6 +71,16 @@ func CreateRespTable(db *sqlx.DB, firstDateStr string, secondDateStr string, clo
 			executor = 0
 		} else {
 			executor = *(order.ExecutorVkID)
+			err := db.QueryRow("SELECT requisite from executors WHERE vk_id =$1", executor).Scan(&requisite)
+			if err != nil {
+				log.Println("Couldn't find the line with the order")
+				return nil, err
+				log.Error(err)
+			}
+			log.Println(requisite)
+			if requisite == "" {
+				requisite = "Исполнитель не оставил свои реквизиты"
+			}
 		}
 		if order.PercentExecutor == nil {
 			percentExecutor = 0
@@ -92,7 +103,8 @@ func CreateRespTable(db *sqlx.DB, firstDateStr string, secondDateStr string, clo
 		f.SetCellValue("Sheet1", "H"+numberRowStr, percentExecutor)
 		f.SetCellValue("Sheet1", "I"+numberRowStr, price*uint64(percentExecutor)/100)
 		f.SetCellValue("Sheet1", "J"+numberRowStr, price*(100-uint64(percentExecutor))/100)
-		f.SetCellValue("Sheet1", "K"+numberRowStr, orderStatus)
+		f.SetCellValue("Sheet1", "K"+numberRowStr, requisite)
+		f.SetCellValue("Sheet1", "L"+numberRowStr, orderStatus)
 
 		//f.SetCellValue("Sheet1", "K1", order.)
 		//f.SetCellValue("Sheet1", "L1", "Статус оплаты")
