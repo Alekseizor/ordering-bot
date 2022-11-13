@@ -164,6 +164,11 @@ func (a *App) Run(ctx context.Context) error {
 			(&(state.ChangeExecutorsDisciplines{})).Name():   &(state.ChangeExecutorsDisciplines{}),
 			(&(state.ChangeExecutorsCommissionID{})).Name():  &(state.ChangeExecutorsCommissionID{}),
 			(&(state.ChangeExecutorsCommission{})).Name():    &(state.ChangeExecutorsCommission{}),
+			(&(state.ChangeRequisites{})).Name():             &(state.ChangeRequisites{}),
+			(&(state.Newsletter{})).Name():                   &(state.Newsletter{}),
+			(&(state.NewsletterConfirmation{})).Name():       &(state.NewsletterConfirmation{}),
+			(&(state.NewsletterPeerID{})).Name():             &(state.NewsletterPeerID{}),
+			(&(state.NewsletterSend{})).Name():               &(state.NewsletterSend{}),
 		}
 		ctc := state.ChatContext{
 			User: BotUser,

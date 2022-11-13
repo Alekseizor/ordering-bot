@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type CabinetAdmin struct {
 }
 
@@ -28,11 +28,11 @@ func (state CabinetAdmin) Process(ctc ChatContext, msg object.MessagesMessage) S
 		ManageExecutors{}.PreviewProcess(ctc)
 		return &ManageExecutors{}
 	} else if messageText == "Изменить реквизиты" {
-		StartState{}.PreviewProcess(ctc)
-		return &StartState{}
+		ChangeRequisites{}.PreviewProcess(ctc)
+		return &ChangeRequisites{}
 	} else if messageText == "Рассылка" {
-		StartState{}.PreviewProcess(ctc)
-		return &StartState{}
+		Newsletter{}.PreviewProcess(ctc)
+		return &Newsletter{}
 	} else if messageText == "Назад в главное меню" {
 		StartState{}.PreviewProcess(ctc)
 		return &StartState{}
@@ -72,7 +72,7 @@ func (state CabinetAdmin) Name() string {
 	return "CabinetAdmin"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type UnloadTable struct {
 }
 
@@ -122,7 +122,7 @@ func (state UnloadTable) Name() string {
 	return "UnloadTable"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type UncloseOrder struct {
 }
 
@@ -167,7 +167,7 @@ func (state UncloseOrder) Name() string {
 	return "UncloseOrder"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type СloseOrder struct {
 }
 
@@ -196,7 +196,7 @@ func (state СloseOrder) Name() string {
 	return "СloseOrder"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type GeneralTable struct {
 }
 
@@ -225,7 +225,7 @@ func (state GeneralTable) Name() string {
 	return "GeneralTable"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type UnloadingUnclose struct {
 }
 
@@ -285,7 +285,7 @@ func (state UnloadingUnclose) Name() string {
 	return "UnloadingUnclose"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type AllUnloadingUnclose struct {
 }
 
@@ -333,7 +333,7 @@ func (state AllUnloadingUnclose) Name() string {
 	return "AllUnloadingUnclose"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type AddExecutor struct {
 }
 
@@ -373,7 +373,7 @@ func (state AddExecutor) Name() string {
 	return "AddExecutor"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type AddExecID struct {
 }
 
@@ -420,7 +420,7 @@ func (state AddExecID) Name() string {
 	return "AddExecID"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type AddExecDisciplines struct {
 }
 
@@ -504,7 +504,7 @@ func (state AddExecDisciplines) Name() string {
 	return "AddExecDisciplines"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type ManageExecutors struct {
 }
 
@@ -558,7 +558,7 @@ var ExecutorDeleteID int
 var ExecutorChangeID int
 var ExecutorChangeCommissionID int
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type DeleteExecutorID struct {
 }
 
@@ -618,7 +618,7 @@ func (state DeleteExecutorID) Name() string {
 	return "DeleteExecutorID"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type DeleteExecutor struct {
 }
 
@@ -669,7 +669,7 @@ func (state DeleteExecutor) Name() string {
 	return "DeleteExecutor"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type ChangeExecutorsDisciplinesID struct {
 }
 
@@ -728,7 +728,7 @@ func (state ChangeExecutorsDisciplinesID) Name() string {
 	return "ChangeExecutorsDisciplinesID"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type ChangeExecutorsDisciplines struct {
 }
 
@@ -801,7 +801,7 @@ func (state ChangeExecutorsDisciplines) Name() string {
 	return "ChangeExecutorsDisciplines"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type ChangeExecutorsCommissionID struct {
 }
 
@@ -860,7 +860,7 @@ func (state ChangeExecutorsCommissionID) Name() string {
 	return "ChangeExecutorsCommissionID"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type ChangeExecutorsCommission struct {
 }
 
