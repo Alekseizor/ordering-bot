@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/Alekseizor/ordering-bot/internal/app/ds"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
@@ -25,7 +26,7 @@ func GetIDOrder(Db *sqlx.DB, VkID int) (int, error) {
 
 func GetOrder(Db *sqlx.DB, ID int) (ds.Order, error) {
 	var order ds.Order
-	err := Db.QueryRow("SELECT * from orders WHERE id =$1", ID).Scan(&order.Id, &order.CustomerVkID, &order.CustomersComment, &order.ExecutorVkID, &order.TypeOrder, &order.DisciplineID, &order.DateOrder, &order.DateFinish, &order.Price, &order.PayoutAdmin, &order.PayoutExecutors, &order.OrderTask)
+	err := Db.QueryRow("SELECT * from orders WHERE id =$1", ID).Scan(&order.Id, &order.CustomerVkID, &order.CustomersComment, &order.ExecutorVkID, &order.TypeOrder, &order.DisciplineID, &order.DateOrder, &order.DateFinish, &order.Price, &order.PercentExecutor, &order.VerificationExecutor, &order.VerificationCustomer, &order.OrderTask)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Println("Row with id unknown")
@@ -76,4 +77,21 @@ func GetCompleteOrder(Db *sqlx.DB, VkID int) (string, error) {
 		break
 	}
 	return output, nil
+}
+
+func ClearTable(db *sqlx.DB, firstDateStr string, secondDateStr string, close string) error {
+	var requestStr string
+	if close == "Общая таблица" {
+		requestStr = fmt.Sprintf("DELETE FROM orders WHERE date_order > '%s' AND date_order < '%s'", firstDateStr, secondDateStr)
+	} else if close == "Закрытые заказы" {
+		requestStr = fmt.Sprintf("DELETE FROM orders WHERE verification_executor=true AND verification_customer=true AND date_order > '%s' AND date_order < '%s'", firstDateStr, secondDateStr)
+	} else if close == "Незакрытые заказы" {
+		requestStr = fmt.Sprintf("DELETE FROM orders WHERE (verification_executor IS NULL OR verification_customer IS NULL) AND date_order > '%s' AND date_order < '%s'", firstDateStr, secondDateStr)
+	}
+	_, err := db.Exec(requestStr)
+	if err != nil {
+		log.WithError(err).Error("cant delete orders")
+		return err
+	}
+	return nil
 }
