@@ -17,5 +17,5 @@ CREATE TABLE IF NOT EXISTS docs
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS docs;
 -- +goose StatementEnd

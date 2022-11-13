@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS orders
     executor_vk_id       int,
     type_order           text NOT NULL,
     discipline_id        int,
-    date_order          timestamp with time zone,
+    date_order           timestamp with time zone,
     date_finish          timestamp with time zone,
     price                bigint CHECK ( price > 0 ),
     percent_executor     int,
