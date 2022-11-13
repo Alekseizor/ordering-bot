@@ -5,18 +5,17 @@ import (
 )
 
 type Order struct {
-	Id               int       `db:"id"`
-	CustomerVkID     int       `db:"customer_vk_id"`
-	CustomersComment *string   `db:"customers_comment"`
-	ExecutorVkID     *int      `db:"executor_vk_id"`
-	TypeOrder        string    `db:"type_order"`
-	DisciplineID     int       `db:"discipline_id"`
-	DateOrder        time.Time `db:"date_order"`
-	DateFinish       time.Time `db:"date_finish"`
-	TimeFinish       time.Time `db:"time_finish"`
-	Price            *uint64   `db:"price"`
-	PercentExecutor  uint      `db:"percent_executor"`
-	PayoutAdmin      *bool     `db:"payout_admin"`
-	PayoutExecutors  *bool     `db:"payout_executors"`
-	OrderTask        *string   `db:"order_task"`
+	Id                   int       `db:"id"`
+	CustomerVkID         uint      `db:"customer_vk_id"`
+	CustomersComment     *string   `db:"customers_comment"`
+	ExecutorVkID         *uint     `db:"executor_vk_id"`
+	TypeOrder            string    `db:"type_order"`
+	DisciplineID         int       `db:"discipline_id"`
+	DateOrder            time.Time `db:"date_order"`
+	DateFinish           time.Time `db:"date_finish"`
+	Price                *uint64   `db:"price"`
+	PercentExecutor      *uint     `db:"percent_executor"`
+	VerificationExecutor *bool     `db:"verification_executor"`
+	VerificationCustomer *bool     `db:"verification_customer"`
+	OrderTask            *string   `db:"order_task"`
 }

@@ -166,7 +166,8 @@ func (state ChoiceDiscipline) Name() string {
 
 // ////////////////////////////////////////////////////////
 const (
-	layout = "02.01.2006"
+	layout  = "02.01.2006"
+	layout2 = "2006-01-02 15:04:05-07"
 )
 
 type ChoiceDate struct {

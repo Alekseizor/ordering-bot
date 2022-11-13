@@ -169,6 +169,15 @@ func (a *App) Run(ctx context.Context) error {
 			(&(state.NewsletterConfirmation{})).Name():       &(state.NewsletterConfirmation{}),
 			(&(state.NewsletterPeerID{})).Name():             &(state.NewsletterPeerID{}),
 			(&(state.NewsletterSend{})).Name():               &(state.NewsletterSend{}),
+			(&(state.SelectionUnload{})).Name():              &(state.SelectionUnload{}),
+			(&(state.SelectionDateUnload{})).Name():          &(state.SelectionDateUnload{}),
+			(&(state.InputFirstDateUnload{})).Name():         &(state.InputFirstDateUnload{}),
+			(&(state.InputSecondDateUnload{})).Name():        &(state.InputSecondDateUnload{}),
+			(&(state.SelectionAllOrPersonalUnload{})).Name(): &(state.SelectionAllOrPersonalUnload{}),
+			(&(state.PersonalUnload{})).Name():               &(state.PersonalUnload{}),
+			(&(state.SelectionDateClear{})).Name():           &(state.SelectionDateClear{}),
+			(&(state.InputFirstDateClear{})).Name():          &(state.InputFirstDateClear{}),
+			(&(state.InputSecondDateClear{})).Name():         &(state.InputSecondDateClear{}),
 		}
 		ctc := state.ChatContext{
 			User: BotUser,

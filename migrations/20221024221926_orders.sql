@@ -11,8 +11,9 @@ CREATE TABLE IF NOT EXISTS orders
     date_order           timestamp with time zone,
     date_finish          timestamp with time zone,
     price                bigint CHECK ( price > 0 ),
-    payout_admin         bool,
-    payout_executors     bool,
+    percent_executor     int,
+    verification_executor         bool,
+    verification_customer        bool,
     order_task           text
 );
 -- +goose StatementEnd
