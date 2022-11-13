@@ -706,13 +706,13 @@ func (state ChangeExecutorsCommission) Process(ctc ChatContext, msg object.Messa
 			return &ChangeExecutorsCommission{}
 		}
 		var oldCommission *int
-		err = ctc.Db.QueryRow("SELECT commission_service FROM executors WHERE vk_id=$1", ExecutorChangeCommissionID).Scan(&oldCommission)
+		err = ctc.Db.QueryRow("SELECT percent_executor FROM executors WHERE vk_id=$1", ExecutorChangeCommissionID).Scan(&oldCommission)
 		if err != nil {
 			log.WithError(err).Error("cant change Executors commission_service on state ChangeExecutorsCommission")
 			state.PreviewProcess(ctc)
 			return &ChangeExecutorsCommission{}
 		}
-		_, err = ctc.Db.ExecContext(*ctc.Ctx, "UPDATE executors SET commission_service = $1 WHERE vk_id=$2", newCommission, ExecutorChangeCommissionID)
+		_, err = ctc.Db.ExecContext(*ctc.Ctx, "UPDATE executors SET percent_executor = $1 WHERE vk_id=$2", newCommission, ExecutorChangeCommissionID)
 		if err != nil {
 			log.WithError(err).Error("cant change Executors commission_service on state ChangeExecutorsCommission")
 			state.PreviewProcess(ctc)

@@ -13,7 +13,9 @@ import (
 func CreateRespTable(db *sqlx.DB, firstDateStr string, secondDateStr string, close string, ID ...int) (*excelize.File, error) {
 	var rows *sql.Rows
 	var err error
-	var requestStr, orderStatus, requisite string
+	var requestStr, orderStatus string
+	var exec ds.Executor
+
 	f := excelize.NewFile() //создали новый лист
 	f.SetCellValue("Sheet1", "A1", "Номер заказа")
 	f.SetCellValue("Sheet1", "B1", "Заказчик")
@@ -54,6 +56,7 @@ func CreateRespTable(db *sqlx.DB, firstDateStr string, secondDateStr string, clo
 	}
 	var order ds.Order
 	var price uint64
+	var requisite string
 	var executor, percentExecutor uint
 	numberRow := 2
 	for rows.Next() {
@@ -71,15 +74,18 @@ func CreateRespTable(db *sqlx.DB, firstDateStr string, secondDateStr string, clo
 			executor = 0
 		} else {
 			executor = *(order.ExecutorVkID)
-			err := db.QueryRow("SELECT requisite from executors WHERE vk_id =$1", executor).Scan(&requisite)
+			err := db.QueryRow("SELECT requisite from executors WHERE vk_id =$1", executor).Scan(&exec.Requisite)
 			if err != nil {
 				log.Println("Couldn't find the line with the order")
 				return nil, err
 				log.Error(err)
 			}
-			log.Println(requisite)
-			if requisite == "" {
+			log.Println(exec.Requisite)
+
+			if exec.Requisite == nil {
 				requisite = "Исполнитель не оставил свои реквизиты"
+			} else {
+				requisite = *exec.Requisite
 			}
 		}
 		if order.PercentExecutor == nil {
