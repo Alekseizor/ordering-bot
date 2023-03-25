@@ -35,7 +35,6 @@ func main() {
 	application, err := app.NewApp(ctx)
 	if err != nil {
 		log.WithContext(ctx).WithError(err).Error("app creating error")
-
 		os.Exit(2)
 	}
 	// Запуск приложения

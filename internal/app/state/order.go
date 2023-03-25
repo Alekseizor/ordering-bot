@@ -580,10 +580,14 @@ type OrderCompleted struct {
 func (state OrderCompleted) Process(ctc ChatContext, msg object.MessagesMessage) State {
 	messageText := msg.Text
 	if messageText == "Оформить заказ" {
-		StartState{}.PreviewProcess(ctc)
-		return &StartState{}
-		//state.PreviewProcess(ctc)
-		//return &OrderCompleted{}
+		err := DistributionOrderExecutors(ctc)
+		if err != nil {
+			log.Println("the order could not be sent to the executors")
+		}
+		//StartState{}.PreviewProcess(ctc)
+		//return &StartState{}
+		state.PreviewProcess(ctc)
+		return &OrderCompleted{}
 	} else if messageText == "Редактировать заказ" {
 		OrderChange{}.PreviewProcess(ctc)
 		return &OrderChange{}

@@ -8,6 +8,7 @@ import (
 	"github.com/Alekseizor/ordering-bot/internal/app/config"
 	"github.com/Alekseizor/ordering-bot/internal/app/ds"
 	"github.com/Alekseizor/ordering-bot/internal/app/dsn"
+	"github.com/Alekseizor/ordering-bot/internal/app/repository"
 	"github.com/Alekseizor/ordering-bot/internal/app/state"
 	"github.com/SevereCloud/vksdk/v2/longpoll-bot"
 
@@ -179,6 +180,10 @@ func (a *App) Run(ctx context.Context) error {
 			(&(state.InputFirstDateClear{})).Name():          &(state.InputFirstDateClear{}),
 			(&(state.InputSecondDateClear{})).Name():         &(state.InputSecondDateClear{}),
 			(&(state.ChangeRequisiteExecutor{})).Name():      &(state.ChangeRequisiteExecutor{}),
+			(&(state.ConfirmationExecutor{})).Name():         &(state.ConfirmationExecutor{}),
+			(&(state.ChoosingExecutor{})).Name():             &(state.ChoosingExecutor{}),
+			(&(state.ReselectingExecutor{})).Name():          &(state.ReselectingExecutor{}),
+			(&(state.ChoosingExecutorError{})).Name():        &(state.ChoosingExecutorError{}),
 		}
 		ctc := state.ChatContext{
 			User: BotUser,
@@ -187,6 +192,32 @@ func (a *App) Run(ctx context.Context) error {
 			Ctx:  &ctx,
 		}
 		//cfg := config.FromContext(*ctc.Ctx).Bot
+		if obj.Message.Payload != "" {
+			if obj.Message.Text == "Принять" {
+				orderNumber, err := strconv.Atoi(obj.Message.Payload)
+				if err != nil {
+					log.WithError(err).Error("cant set user")
+					return
+				}
+				repository.WriteOffer(ctc.Db, orderNumber, ctc.User.VkID)
+				BotUser.State = "ConfirmationExecutor"
+			} else {
+				log.Println(obj.Message.Payload)
+				execOrder, err := ds.Unmarshal(obj.Message.Payload)
+				if err != nil {
+					log.WithError(err).Error("couldn't parse payload")
+					return
+				}
+				err = repository.AddingExecutor(ctc.Db, execOrder)
+				if err == nil {
+					BotUser.State = "ChoosingExecutor"
+				} else if err.Error() == "the executor has already been selected" {
+					BotUser.State = "ReselectingExecutor"
+				} else {
+					BotUser.State = "ChoosingExecutorError"
+				}
+			}
+		}
 		step := strInState[BotUser.State]
 		nextStep := step.Process(ctc, obj.Message)
 		BotUser.State = nextStep.Name()
