@@ -15,6 +15,7 @@ func CreateRespTable(db *sqlx.DB, firstDateStr string, secondDateStr string, clo
 	var err error
 	var requestStr, orderStatus string
 	var exec ds.Executor
+	var style int
 
 	f := excelize.NewFile() //создали новый лист
 	f.SetCellValue("Sheet1", "A1", "Номер заказа")
@@ -76,11 +77,8 @@ func CreateRespTable(db *sqlx.DB, firstDateStr string, secondDateStr string, clo
 			executor = *(order.ExecutorVkID)
 			err := db.QueryRow("SELECT requisite from executors WHERE vk_id =$1", executor).Scan(&exec.Requisite)
 			if err != nil {
-				log.Println("Couldn't find the line with the order")
-				return nil, err
 				log.Error(err)
 			}
-			log.Println(exec.Requisite)
 
 			if exec.Requisite == nil {
 				requisite = "Исполнитель не оставил свои реквизиты"
@@ -95,8 +93,20 @@ func CreateRespTable(db *sqlx.DB, firstDateStr string, secondDateStr string, clo
 		}
 		if order.VerificationCustomer == nil || order.VerificationExecutor == nil {
 			orderStatus = "Не закрыт"
+			style, err = f.NewStyle(&excelize.Style{
+				Fill: excelize.Fill{Type: "pattern", Color: []string{"#ae0000"}, Pattern: 1},
+			})
+			if err != nil {
+				fmt.Println(err)
+			}
 		} else {
 			orderStatus = "Закрыт"
+			style, err = f.NewStyle(&excelize.Style{
+				Fill: excelize.Fill{Type: "pattern", Color: []string{"#9fff40"}, Pattern: 1},
+			})
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
 		numberRowStr := strconv.Itoa(numberRow)
 		f.SetCellValue("Sheet1", "A"+numberRowStr, order.Id)
@@ -111,7 +121,7 @@ func CreateRespTable(db *sqlx.DB, firstDateStr string, secondDateStr string, clo
 		f.SetCellValue("Sheet1", "J"+numberRowStr, price*(100-uint64(percentExecutor))/100)
 		f.SetCellValue("Sheet1", "K"+numberRowStr, requisite)
 		f.SetCellValue("Sheet1", "L"+numberRowStr, orderStatus)
-
+		f.SetCellStyle("Sheet1", "L"+numberRowStr, "L"+numberRowStr, style)
 		//f.SetCellValue("Sheet1", "K1", order.)
 		//f.SetCellValue("Sheet1", "L1", "Статус оплаты")
 		if err := f.SaveAs("Book1.xlsx"); err != nil {

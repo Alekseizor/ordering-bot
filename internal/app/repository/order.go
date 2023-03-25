@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/Alekseizor/ordering-bot/internal/app/ds"
 	"github.com/jmoiron/sqlx"
@@ -89,6 +90,28 @@ func ClearTable(db *sqlx.DB, firstDateStr string, secondDateStr string, close st
 		requestStr = fmt.Sprintf("DELETE FROM orders WHERE (verification_executor IS NULL OR verification_customer IS NULL) AND date_order > '%s' AND date_order < '%s'", firstDateStr, secondDateStr)
 	}
 	_, err := db.Exec(requestStr)
+	if err != nil {
+		log.WithError(err).Error("cant delete orders")
+		return err
+	}
+	return nil
+}
+
+func AddingExecutor(db *sqlx.DB, executorOrder ds.ExecutorOrder) error {
+	order, err := GetOrder(db, executorOrder.OrderID)
+	if err != nil {
+		log.WithError(err).Error("couldn't request an order")
+		return err
+	}
+	if order.ExecutorVkID != nil {
+		return errors.New("the executor has already been selected")
+	}
+	executor, err := GetExecutorByID(db, executorOrder.ExecutorID)
+	if err != nil {
+		log.WithError(err).Error("failed to request a executor by ID")
+		return err
+	}
+	_, err = db.Exec("UPDATE orders SET executor_vk_id=$1,price=$2,percent_executor=$3 WHERE id=$4", executorOrder.ExecutorID, executorOrder.Price, executor.PercentExecutor, executorOrder.OrderID)
 	if err != nil {
 		log.WithError(err).Error("cant delete orders")
 		return err
