@@ -11,18 +11,17 @@ import (
 	"github.com/Alekseizor/ordering-bot/internal/app/repository"
 	"github.com/Alekseizor/ordering-bot/internal/app/state"
 	"github.com/SevereCloud/vksdk/v2/longpoll-bot"
+	log "github.com/sirupsen/logrus"
 
-	"github.com/SevereCloud/vksdk/v2/api/params"
-	"github.com/SevereCloud/vksdk/v2/object"
 	_ "github.com/lib/pq"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/Alekseizor/ordering-bot/internal/anonymous_conversation"
 	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/SevereCloud/vksdk/v2/events"
 	"github.com/jmoiron/sqlx"
-	log "github.com/sirupsen/logrus"
 )
 
 type App struct {
@@ -88,6 +87,34 @@ func (a *App) Run(ctx context.Context) error {
 			log.WithError(err).Error("cant set user")
 			return
 		}
+		if obj.Message.PeerID > 2000000000 {
+			strInState := map[string]state.State{
+				(&(anonymous_conversation.ForwardMessage{})).Name(): &(anonymous_conversation.ForwardMessage{}),
+			}
+			if obj.Message.Text == "" {
+				BotUser = &ds.User{}
+				BotUser.VkID = obj.Message.PeerID
+				BotUser.State = "ForwardMessage"
+				_, err := a.db.ExecContext(a.ctx, "INSERT INTO users VALUES ($1, $2)", BotUser.VkID, BotUser.State)
+				if err != nil {
+					log.WithError(err).Error("cant set user")
+					return
+				}
+			} else {
+				BotUser = BotUsers[0]
+			}
+			//a.vk.MessagesGetCStaonversationsByID()
+			step := strInState[BotUser.State]
+			ctc := state.ChatContext{
+				User: BotUser,
+				Vk:   a.vk,
+				Db:   a.db,
+				Ctx:  &ctx,
+			}
+			nextStep := step.Process(ctc, obj.Message)
+			BotUser.State = nextStep.Name()
+			return
+		}
 		//if the user writes for the first time, add to the database
 		if BotUsers == nil {
 			BotUser = &ds.User{}
@@ -98,36 +125,6 @@ func (a *App) Run(ctx context.Context) error {
 				log.WithError(err).Error("cant set user")
 				return
 			}
-			b := params.NewMessagesSendBuilder()
-			b.RandomID(0)
-			b.Message("Привет! Добро пожаловать в главное меню бота. Пришли мне номер нужной команды или воспользуйся кнопками")
-			b.PeerID(BotUser.VkID)
-			_, err = a.vk.MessagesSend(b.Params)
-			if err != nil {
-				log.Println("Failed to get record")
-				log.Error(err)
-			}
-			b.Message("1. Сделать заказ\n2. Связаться с исполнителем \n3. Оставить отзыв\n4. Сделать заказ через посредника\n5. Стать исполнителем\n6. Мои заказы")
-			k := &object.MessagesKeyboard{}
-			k.AddRow()
-			k.AddTextButton("Сделать заказ", "", "secondary")
-			k.AddRow()
-			k.AddTextButton("Связаться с исполнителем", "", "secondary")
-			k.AddRow()
-			k.AddTextButton("Оставить отзыв", "", "secondary")
-			k.AddRow()
-			k.AddTextButton("Сделать заказ через посредника", "", "secondary")
-			k.AddRow()
-			k.AddTextButton("Стать исполнителем", "", "secondary")
-			k.AddRow()
-			k.AddTextButton("Мои заказы", "", "secondary")
-			b.Keyboard(k)
-			_, err = a.vk.MessagesSend(b.Params)
-			if err != nil {
-				log.Println("Failed to get record")
-				log.Error(err)
-			}
-			return
 		} else {
 			BotUser = BotUsers[0]
 		}
