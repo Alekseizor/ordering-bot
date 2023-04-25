@@ -193,6 +193,41 @@ func GetAttachments(VK *api.VK, Db *sqlx.DB, VkID int) (string, error) {
 
 }
 
+func GetAttachmentsMyOrder(VK *api.VK, Db *sqlx.DB, ID int, VkID int) (string, error) {
+	var attach ds.Docs
+	//todo: обработка ошибок
+	err := Db.QueryRow("SELECT docs_url, docs_title, images_url, attachment FROM docs WHERE order_id =$1", ID).Scan(pq.Array(&attach.DocsUrl), pq.Array(&attach.DocsTitle), pq.Array(&attach.ImagesUrl), &attach.Attachment)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Println("Row with VkID unknown")
+		} else {
+			log.Println("Couldn't find the line with the docs_url")
+		}
+		log.Error(err)
+	}
+	if attach.Attachment != nil {
+		log.Println("Used quick attachment")
+		return *attach.Attachment, nil
+	} else {
+		var output, outputDocs, outputImages string
+		if attach.DocsUrl != nil {
+			outputDocs, _ = GetDocs(VK, attach.DocsUrl, attach.DocsTitle, VkID)
+			output += outputDocs + ","
+		}
+		if attach.ImagesUrl != nil {
+			outputImages, _ = GetImages(VK, attach.ImagesUrl, VkID)
+			output += outputImages
+		}
+		_, err = Db.Exec("UPDATE docs SET attachment = $1 WHERE order_id =$2", output, ID)
+		if err != nil {
+			log.WithError(err).Error("can`t set attachment in docs")
+		}
+		log.Println("Attachment set")
+		return output, nil
+	}
+
+}
+
 func ConversationGetAttachments(VK *api.VK, VkID int, docsURL, docsTitle, imagesURL []string) (string, error) {
 	var output, outputDocs, outputImages string
 	if docsURL != nil {

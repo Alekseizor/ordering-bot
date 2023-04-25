@@ -187,6 +187,7 @@ func (a *App) Run(ctx context.Context) error {
 			(&(state.ChoosingExecutor{})).Name():             &(state.ChoosingExecutor{}),
 			(&(state.ReselectingExecutor{})).Name():          &(state.ReselectingExecutor{}),
 			(&(state.ChoosingExecutorError{})).Name():        &(state.ChoosingExecutorError{}),
+			(&(state.MyOrderState{})).Name():                 &(state.MyOrderState{}),
 		}
 		ctc := state.ChatContext{
 			User: BotUser,

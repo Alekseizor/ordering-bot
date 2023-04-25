@@ -80,6 +80,49 @@ func GetCompleteOrder(Db *sqlx.DB, VkID int) (string, error) {
 	return output, nil
 }
 
+func GetOrdersIDUser(Db *sqlx.DB, VkID int) ([]int, error) {
+	orders := make([]int, 0)
+	var orderID int
+	rows, err := Db.Query("SELECT id from orders WHERE customer_vk_id =$1", VkID)
+	if err != nil {
+		return nil, err
+	}
+	for rowNumber := 0; rows.Next(); rowNumber++ {
+		err = rows.Scan(&orderID)
+		if err == sql.ErrNoRows {
+			log.Println("Row with id unknown")
+		} else {
+			log.Println("Couldn't find the line with the order")
+		}
+		orders = append(orders, orderID)
+	}
+	return orders, nil
+}
+
+func GetCompleteOrders(Db *sqlx.DB, ID int) (string, error) {
+	var output string
+	order, err := GetOrder(Db, ID)
+	if err != nil {
+		return output, err
+	}
+	disciplineName, err := GetDisciplineName(Db, order.DisciplineID)
+	if err != nil {
+		return output, err
+	}
+	dateFinish := strconv.Itoa(order.DateFinish.Day()) + "." + order.DateFinish.Format("01") + "." + strconv.Itoa(order.DateFinish.Year())
+	var orderTask string
+	if order.OrderTask != nil {
+		orderTask = *order.OrderTask
+	}
+	if order.CustomersComment != nil {
+		customerComment := *order.CustomersComment
+		output = "Заказ: " + strconv.Itoa(order.Id) + "\nВид работы - " + order.TypeOrder + "\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask + "\nКомментарий к заказу - " + customerComment //вывод заказа пользователя
+	} else {
+		output = "Заказ: " + strconv.Itoa(order.Id) + "\nВид работы - " + order.TypeOrder + "\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask //вывод заказа пользователя
+	}
+	return output, nil
+}
+
 func ClearTable(db *sqlx.DB, firstDateStr string, secondDateStr string, close string) error {
 	var requestStr string
 	if close == "Общая таблица" {

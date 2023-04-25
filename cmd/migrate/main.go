@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -73,6 +74,7 @@ func main() {
 
 // Выполняет подключение к БД
 func connect(dsn string) (*gorm.DB, error) {
+	log.Println(dsn)
 	db, err := gorm.Open(driver, dsn)
 	if err != nil {
 		return nil, err
