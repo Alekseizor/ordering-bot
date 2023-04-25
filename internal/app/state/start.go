@@ -36,11 +36,6 @@ func (state StartState) Process(ctc ChatContext, msg object.MessagesMessage) Sta
 	} else if messageText == "Связаться с исполнителем" || messageText == "2" {
 
 		return &StartState{}
-	} else if messageText == "Оставить отзыв" || messageText == "3" {
-		return &StartState{}
-	} else if messageText == "Сделать заказ через посредника" || messageText == "4" {
-
-		return &StartState{}
 	} else if messageText == "Стать исполнителем" || messageText == "5" {
 		if ctc.User.VkID == config.FromContext(*ctc.Ctx).AdminID {
 			CabinetAdmin{}.PreviewProcess(ctc)
@@ -76,10 +71,6 @@ func (state StartState) PreviewProcess(ctc ChatContext) {
 	k.AddTextButton("Сделать заказ", "", "secondary")
 	k.AddRow()
 	k.AddTextButton("Связаться с исполнителем", "", "secondary")
-	k.AddRow()
-	k.AddTextButton("Оставить отзыв", "", "secondary")
-	k.AddRow()
-	k.AddTextButton("Сделать заказ через посредника", "", "secondary")
 	k.AddRow()
 	k.AddTextButton("Стать исполнителем", "", "secondary")
 	k.AddRow()

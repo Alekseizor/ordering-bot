@@ -111,7 +111,7 @@ func AddingExecutor(db *sqlx.DB, executorOrder ds.ExecutorOrder) error {
 		log.WithError(err).Error("failed to request a executor by ID")
 		return err
 	}
-	_, err = db.Exec("UPDATE orders SET executor_vk_id=$1,price=$2,percent_executor=$3 WHERE id=$4", executorOrder.ExecutorID, executorOrder.Price, executor.PercentExecutor, executorOrder.OrderID)
+	_, err = db.Exec("UPDATE orders SET executor_vk_id=$1,price=$2,percent_executor=$3 WHERE id=$4", executor.VkID, executorOrder.Price, executor.PercentExecutor, executorOrder.OrderID)
 	if err != nil {
 		log.WithError(err).Error("cant delete orders")
 		return err

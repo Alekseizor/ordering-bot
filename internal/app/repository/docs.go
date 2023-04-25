@@ -57,6 +57,31 @@ func WriteUrl(Db *sqlx.DB, VkID int, attachments []object.MessagesMessageAttachm
 	}
 }
 
+func ConversationWriteUrl(attachments []object.MessagesMessageAttachment) (docsURL, docsTitle, imagesURL []string) {
+	var num int
+	for _, val := range attachments {
+		switch val.Type {
+		case "doc":
+			docsURL = append(docsURL, val.Doc.URL)
+			docsTitle = append(docsTitle, val.Doc.Title)
+		case "photo":
+			for i, a := range val.Photo.Sizes {
+				if a.Type == "z" {
+					num = i
+					break
+				}
+				if a.Type == "x" {
+					num = i
+				}
+			}
+			imagesURL = append(imagesURL, val.Photo.Sizes[num].URL)
+		default:
+			break
+		}
+	}
+	return docsURL, docsTitle, imagesURL
+}
+
 func GetDocs(VK *api.VK, urls, titles []string, VkID int) (string, error) {
 	var attachments []string
 
@@ -93,7 +118,6 @@ func GetDocs(VK *api.VK, urls, titles []string, VkID int) (string, error) {
 }
 
 func GetImages(VK *api.VK, urls []string, VkID int) (string, error) {
-
 	var attachments []string
 
 	for _, val := range urls {
@@ -167,6 +191,19 @@ func GetAttachments(VK *api.VK, Db *sqlx.DB, VkID int) (string, error) {
 		return output, nil
 	}
 
+}
+
+func ConversationGetAttachments(VK *api.VK, VkID int, docsURL, docsTitle, imagesURL []string) (string, error) {
+	var output, outputDocs, outputImages string
+	if docsURL != nil {
+		outputDocs, _ = GetDocs(VK, docsURL, docsTitle, VkID)
+		output += outputDocs + ","
+	}
+	if imagesURL != nil {
+		outputImages, _ = GetImages(VK, imagesURL, VkID)
+		output += outputImages
+	}
+	return output, nil
 }
 
 func ClearAttachments(Db *sqlx.DB, VkID int) error {
