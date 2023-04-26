@@ -91,6 +91,8 @@ func (a *App) Run(ctx context.Context) error {
 			strInState := map[string]state.State{
 				(&(anonymous_conversation.ForwardMessage{})).Name():   &(anonymous_conversation.ForwardMessage{}),
 				(&(anonymous_conversation.ConversationSend{})).Name(): &(anonymous_conversation.ConversationSend{}),
+				(&(anonymous_conversation.FinishOrderCheck{})).Name(): &(anonymous_conversation.FinishOrderCheck{}),
+				(&(anonymous_conversation.FinishOrder{})).Name():      &(anonymous_conversation.FinishOrder{}),
 			}
 			if obj.Message.Action.Type == "chat_invite_user_by_link" {
 				BotUser = &ds.User{}

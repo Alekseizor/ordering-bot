@@ -15,14 +15,14 @@ func CreateConversations(Db *sqlx.DB, orderID int) (err error) {
 	return err
 }
 
-func AddChatID(Db *sqlx.DB, ChatID int, isExec bool) (err error) {
+func AddChatID(Db *sqlx.DB, ChatID, orderID int, isExec bool) (err error) {
 	if isExec {
-		_, err = Db.Exec("UPDATE conversations SET executors_conversation_id = $1", ChatID)
+		_, err = Db.Exec("UPDATE conversations SET executors_conversation_id = $1 WHERE order_id = $2", ChatID, orderID)
 		if err != nil {
 			log.WithError(err).Error("can`t record docs")
 		}
 	} else {
-		_, err = Db.Exec("UPDATE conversations SET customers_conversation_id = $1", ChatID)
+		_, err = Db.Exec("UPDATE conversations SET customers_conversation_id = $1 WHERE order_id = $2", ChatID, orderID)
 		if err != nil {
 			log.WithError(err).Error("can`t record docs")
 		}

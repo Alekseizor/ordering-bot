@@ -161,3 +161,21 @@ func AddingExecutor(db *sqlx.DB, executorOrder ds.ExecutorOrder) error {
 	}
 	return nil
 }
+
+func FinishOrder(db *sqlx.DB, orderID int, isExec bool) error {
+	if isExec {
+		_, err := db.Exec("UPDATE orders SET verification_executor=$1 WHERE id=$2", true, orderID)
+		if err != nil {
+			log.WithError(err).Error("cant delete orders")
+			return err
+		}
+	} else {
+		_, err := db.Exec("UPDATE orders SET verification_customer=$1 WHERE id=$2", true, orderID)
+		if err != nil {
+			log.WithError(err).Error("cant delete orders")
+			return err
+		}
+	}
+
+	return nil
+}

@@ -26,6 +26,25 @@ type ForwardMessage struct {
 
 func (state ForwardMessage) Process(ctc state.ChatContext, msg object.MessagesMessage) state.State {
 	state.PreviewProcess(ctc)
+	var message string
+	orderID, vkId, _ := GetOrderAndVkID(ctc, msg)
+	vkid, _ := strconv.Atoi(vkId)
+	orderId, _ := strconv.Atoi(orderID)
+	isExecutor, _ := repository.IsExecutorInOrder(ctc.Db, orderId, vkid)
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	if isExecutor {
+		message = "Начните исполнять заказ лишь после того, как получите фото с подтверждением оплаты"
+	} else {
+		message = "Пришлите фото с подтверждением оплаты"
+	}
+	b.Message(message)
+	b.PeerID(ctc.User.VkID)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to send message")
+		log.Error(err)
+	}
 	return ConversationSend{}
 
 }
@@ -60,7 +79,6 @@ func (state ConversationSend) Process(ctc state.ChatContext, msg object.Messages
 	messageText := msg.Text
 	var chatID int
 	var err error
-
 	if messageText == "Проблемы с заказом" || strings.Contains(messageText, "] Проблемы с заказом") {
 		b := params.NewMessagesSendBuilder()
 		b.RandomID(0)
@@ -73,7 +91,8 @@ func (state ConversationSend) Process(ctc state.ChatContext, msg object.Messages
 		}
 		return &ConversationSend{}
 	} else if messageText == "Завершить заказ" || strings.Contains(messageText, "] Завершить заказ") {
-		return ConversationSend{}
+		FinishOrderCheck{}.PreviewProcess(ctc)
+		return FinishOrderCheck{}
 	} else {
 		orderID, vkId, _ := GetOrderAndVkID(ctc, msg)
 		vkid, _ := strconv.Atoi(vkId)
@@ -108,6 +127,7 @@ func (state ConversationSend) Process(ctc state.ChatContext, msg object.Messages
 			log.Println("Failed to get record")
 			log.Error(err)
 		}
+		state.PreviewProcess(ctc)
 		return ConversationSend{}
 	}
 }
@@ -131,4 +151,90 @@ func (state ConversationSend) PreviewProcess(ctc state.ChatContext) {
 
 func (state ConversationSend) Name() string {
 	return "ConversationSend"
+}
+
+// ////////////////////////////////////////////////////////
+type FinishOrderCheck struct {
+}
+
+func (state FinishOrderCheck) Process(ctc state.ChatContext, msg object.MessagesMessage) state.State {
+	messageText := msg.Text
+	if messageText == "Да" || strings.Contains(messageText, "] Да") {
+		orderID, vkId, _ := GetOrderAndVkID(ctc, msg)
+		vkid, _ := strconv.Atoi(vkId)
+		orderId, _ := strconv.Atoi(orderID)
+		isExecutor, _ := repository.IsExecutorInOrder(ctc.Db, orderId, vkid)
+		_ = repository.FinishOrder(ctc.Db, orderId, isExecutor)
+		FinishOrder{}.PreviewProcess(ctc)
+		return FinishOrder{}
+	} else if messageText == "Нет" || strings.Contains(messageText, "] Нет") {
+		b := params.NewMessagesSendBuilder()
+		b.RandomID(0)
+		b.PeerID(ctc.User.VkID)
+		b.Message("Завершение заказа отменено")
+		k := &object.MessagesKeyboard{}
+		k.AddRow()
+		k.AddTextButton("Проблемы с заказом", "", "secondary")
+		k.AddRow()
+		k.AddTextButton("Завершить заказ", "", "secondary")
+		b.Keyboard(k)
+		_, err := ctc.Vk.MessagesSend(b.Params)
+		if err != nil {
+			log.Println("Failed to get record")
+			log.Error(err)
+		}
+		ConversationSend{}.PreviewProcess(ctc)
+		return ConversationSend{}
+	} else {
+		state.PreviewProcess(ctc)
+		return FinishOrderCheck{}
+	}
+}
+
+func (state FinishOrderCheck) PreviewProcess(ctc state.ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.PeerID(ctc.User.VkID)
+	b.Message("Вы уверены, что хотите завершить заказ?")
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Да", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Нет", "", "secondary")
+	b.Keyboard(k)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+
+func (state FinishOrderCheck) Name() string {
+	return "FinishOrderCheck"
+}
+
+// ////////////////////////////////////////////////////////
+type FinishOrder struct {
+}
+
+func (state FinishOrder) Process(ctc state.ChatContext, msg object.MessagesMessage) state.State {
+
+	state.PreviewProcess(ctc)
+	return FinishOrder{}
+}
+
+func (state FinishOrder) PreviewProcess(ctc state.ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.PeerID(ctc.User.VkID)
+	b.Message("Заказ завершён")
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+
+func (state FinishOrder) Name() string {
+	return "FinishOrder"
 }
