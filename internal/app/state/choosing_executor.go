@@ -30,7 +30,7 @@ func GetLink(ctc ChatContext, msg object.MessagesMessage, vkID int, isExec bool)
 		"reset":    0,
 		"group_id": msg.PeerID,
 	})
-	_ = repository.AddChatID(ctc.Db, 2000000000+chatID, isExec)
+	_ = repository.AddChatID(ctc.Db, 2000000000+chatID, order.OrderID, isExec)
 	if err != nil {
 		return api.MessagesGetInviteLinkResponse{}, fmt.Errorf("failed to create link, err: %s", err.Error())
 	}
