@@ -584,10 +584,8 @@ func (state OrderCompleted) Process(ctc ChatContext, msg object.MessagesMessage)
 		if err != nil {
 			log.Println("the order could not be sent to the executors")
 		}
-		//StartState{}.PreviewProcess(ctc)
-		//return &StartState{}
-		state.PreviewProcess(ctc)
-		return &OrderCompleted{}
+		StartState{}.PreviewProcess(ctc)
+		return &StartState{}
 	} else if messageText == "Редактировать заказ" {
 		OrderChange{}.PreviewProcess(ctc)
 		return &OrderChange{}
@@ -619,7 +617,7 @@ func (state OrderCompleted) PreviewProcess(ctc ChatContext) {
 	}
 	b.Message(output)
 	attachment, _ := repository.GetAttachments(ctc.Vk, ctc.Db, ctc.User.VkID)
-
+	log.Println(attachment)
 	b.Attachment(attachment)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()

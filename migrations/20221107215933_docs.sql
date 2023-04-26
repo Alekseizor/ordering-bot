@@ -7,11 +7,16 @@ CREATE TABLE IF NOT EXISTS docs
     docs_title           text[],
     images_url           text[],
     attachment           text,
-    order_id                   int UNIQUE ,
+    order_id                   int UNIQUE,
+    chat_id                   int,
     constraint fk_customer
         FOREIGN KEY(order_id)
             REFERENCES orders(id)
-                ON DELETE CASCADE
+                ON DELETE CASCADE,
+    constraint fk_docs_conversations
+        FOREIGN KEY(chat_id)
+            REFERENCES conversations(id)
+            ON DELETE CASCADE
     );
 -- +goose StatementEnd
 

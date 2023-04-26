@@ -89,9 +89,10 @@ func (a *App) Run(ctx context.Context) error {
 		}
 		if obj.Message.PeerID > 2000000000 {
 			strInState := map[string]state.State{
-				(&(anonymous_conversation.ForwardMessage{})).Name(): &(anonymous_conversation.ForwardMessage{}),
+				(&(anonymous_conversation.ForwardMessage{})).Name():   &(anonymous_conversation.ForwardMessage{}),
+				(&(anonymous_conversation.ConversationSend{})).Name(): &(anonymous_conversation.ConversationSend{}),
 			}
-			if obj.Message.Text == "" {
+			if obj.Message.Action.Type == "chat_invite_user_by_link" {
 				BotUser = &ds.User{}
 				BotUser.VkID = obj.Message.PeerID
 				BotUser.State = "ForwardMessage"
@@ -103,7 +104,7 @@ func (a *App) Run(ctx context.Context) error {
 			} else {
 				BotUser = BotUsers[0]
 			}
-			//a.vk.MessagesGetCStaonversationsByID()
+			//a.vk.MessagesGetConversationsByID()
 			step := strInState[BotUser.State]
 			ctc := state.ChatContext{
 				User: BotUser,
@@ -113,10 +114,15 @@ func (a *App) Run(ctx context.Context) error {
 			}
 			nextStep := step.Process(ctc, obj.Message)
 			BotUser.State = nextStep.Name()
+			_, err = a.db.ExecContext(a.ctx, "UPDATE users SET State = $1 WHERE vk_id = $2", BotUser.State, BotUser.VkID)
+			if err != nil {
+				log.WithError(err).Error("cant set user")
+				return
+			}
 			return
 		}
 		//if the user writes for the first time, add to the database
-		if BotUsers == nil {
+		if len(BotUsers) == 0 {
 			BotUser = &ds.User{}
 			BotUser.VkID = obj.Message.PeerID
 			BotUser.State = "StartState"
@@ -181,6 +187,7 @@ func (a *App) Run(ctx context.Context) error {
 			(&(state.ChoosingExecutor{})).Name():             &(state.ChoosingExecutor{}),
 			(&(state.ReselectingExecutor{})).Name():          &(state.ReselectingExecutor{}),
 			(&(state.ChoosingExecutorError{})).Name():        &(state.ChoosingExecutorError{}),
+			(&(state.MyOrderState{})).Name():                 &(state.MyOrderState{}),
 		}
 		ctc := state.ChatContext{
 			User: BotUser,

@@ -25,6 +25,34 @@ func IsExecutor(Db *sqlx.DB, vkID int) (bool, error) {
 	return true, nil
 }
 
+func IsExecutorInOrder(Db *sqlx.DB, orderID, vkID int) (bool, error) {
+	var exec ds.Executor
+	err := Db.QueryRow("SELECT 1 from executors WHERE vk_id = $1", vkID).Scan(&exec.Id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Println("No executor with vk_id founded")
+			return false, err
+		} else {
+			log.Println(err)
+			log.Println("Query error")
+			return false, err
+		}
+	}
+	var ord ds.Order
+	err = Db.QueryRow("SELECT 1 from orders WHERE id = $1 AND executor_vk_id = $2", orderID, vkID).Scan(&ord.Id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Println("No executor with vk_id in this order founded")
+			return false, err
+		} else {
+			log.Println(err)
+			log.Println("Query error")
+			return false, err
+		}
+	}
+	return true, nil
+}
+
 func DeleteExecutor(Db *sqlx.DB, vkID int) error {
 	log.Println(vkID)
 	_, err := Db.Exec("DELETE from executors WHERE vk_id = $1", vkID)

@@ -7,4 +7,5 @@ type Docs struct {
 	ImagesUrl  []string `db:"images_url"`
 	Attachment *string  `db:"attachment"`
 	OrderID    int      `db:"order_id"`
+	//ChatID     int      `db:"chat_id"`
 }

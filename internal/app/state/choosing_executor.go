@@ -11,11 +11,12 @@ import (
 	"strconv"
 )
 
-func GetLink(ctc ChatContext, msg object.MessagesMessage, vkID int) (link api.MessagesGetInviteLinkResponse, err error) {
+func GetLink(ctc ChatContext, msg object.MessagesMessage, vkID int, isExec bool) (link api.MessagesGetInviteLinkResponse, err error) {
 	order, err := ds.Unmarshal(msg.Payload)
 	if err != nil {
 		return api.MessagesGetInviteLinkResponse{}, fmt.Errorf("failed to unmarshal message payload, err: %s", err.Error())
 	}
+
 	chatID, err := ctc.Vk.MessagesCreateChat(api.Params{
 		"title":    strconv.Itoa(order.OrderID) + "_" + strconv.Itoa(vkID),
 		"user_ids": vkID,
@@ -29,6 +30,7 @@ func GetLink(ctc ChatContext, msg object.MessagesMessage, vkID int) (link api.Me
 		"reset":    0,
 		"group_id": msg.PeerID,
 	})
+	_ = repository.AddChatID(ctc.Db, 2000000000+chatID, isExec)
 	if err != nil {
 		return api.MessagesGetInviteLinkResponse{}, fmt.Errorf("failed to create link, err: %s", err.Error())
 	}
@@ -45,7 +47,7 @@ func SendLinkExecutor(ctc ChatContext, msg object.MessagesMessage) (err error) {
 	if err != nil {
 		return fmt.Errorf("failed to get executor, err: %s", err.Error())
 	}
-	link, err := GetLink(ctc, msg, executor.VkID)
+	link, err := GetLink(ctc, msg, executor.VkID, true)
 	if err != nil {
 		return fmt.Errorf("failed to get link, err: %s", err.Error())
 	}
@@ -78,7 +80,9 @@ func (state ChoosingExecutor) Process(ctc ChatContext, msg object.MessagesMessag
 		return StartState{}
 	}
 	//создаем анонимную беседу с заказчиком
-	link, err := GetLink(ctc, msg, ctc.User.VkID)
+	order, err := ds.Unmarshal(msg.Payload)
+	_ = repository.CreateConversations(ctc.Db, order.OrderID)
+	link, err := GetLink(ctc, msg, ctc.User.VkID, false)
 	if err != nil {
 		log.Println(err)
 		StartState{}.PreviewProcess(ctc)
