@@ -14,7 +14,7 @@ services: # имеджи, которые запустятся по вашему 
       - DB_PASS=vkbot_password
       - DB_HOST=db
       - DB_NAME=vkbot_db
-      - VK_TOKEN=vk1.a.xor1NCLq_CEWCtDdFOTsqYpSHtXWK9DCDqV2YbF8to4ZMw0bNgXyziEiOPz10AV6VmGNyIdKfP3b-PXcaJ-dfKTTwAhXlDLHl0mNffeXW3cFudt_eOHLfD9t6iKa3jV1io8018u4anxgd8SPFIld4qAyowXcoDO7jjOTML9elPGPosr7u092BdzE1wOTS-8w
+      - VK_TOKEN=
   db: # название моего имеджа
     restart: always
     image: postgres:12 # скачает image postgres 12 версии
