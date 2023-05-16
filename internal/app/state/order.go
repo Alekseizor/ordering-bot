@@ -574,6 +574,74 @@ func (state TaskOrder) Name() string {
 }
 
 // ////////////////////////////////////////////////////////
+type ConfirmExecutor struct {
+}
+
+func (state ConfirmExecutor) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
+	if messageText == "Назад" {
+		OrderCompleted{}.PreviewProcess(ctc)
+		return &OrderCompleted{}
+	}
+	executorID, err := strconv.Atoi(messageText)
+	if err != nil {
+		log.WithError(err).Error("the string is not number for executor id")
+		state.PreviewProcess(ctc)
+		return &ConfirmExecutor{}
+	}
+	isExec, err := repository.IsExecutorByID(ctc.Db, executorID)
+	if isExec {
+		b := params.NewMessagesSendBuilder()
+		b.RandomID(0)
+		b.Message("Исполнитель найден. Заказ отправлен.")
+		b.PeerID(ctc.User.VkID)
+		_, err = ctc.Vk.MessagesSend(b.Params)
+		if err != nil {
+			log.Println("Failed to get record")
+			log.Error(err)
+		}
+		err = DirectDistribution(ctc, executorID)
+		if err != nil {
+			log.Println("Failed to send direct offer")
+			log.Error(err)
+		}
+		StartState{}.PreviewProcess(ctc)
+		return &StartState{}
+	} else {
+		b := params.NewMessagesSendBuilder()
+		b.RandomID(0)
+		b.Message("Исполнитель с таким ID не найден")
+		b.PeerID(ctc.User.VkID)
+		_, err := ctc.Vk.MessagesSend(b.Params)
+		if err != nil {
+			log.Println("Failed to get record")
+			log.Error(err)
+		}
+		state.PreviewProcess(ctc)
+		return &ConfirmExecutor{}
+	}
+}
+
+func (state ConfirmExecutor) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.Message("Введите ID исполнителя")
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Назад", "", "secondary")
+	b.Keyboard(k)
+	b.PeerID(ctc.User.VkID)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+func (state ConfirmExecutor) Name() string {
+	return "ConfirmExecutor"
+}
+
+// ////////////////////////////////////////////////////////
 type OrderCompleted struct {
 }
 
@@ -586,6 +654,7 @@ func (state OrderCompleted) Process(ctc ChatContext, msg object.MessagesMessage)
 		}
 		StartState{}.PreviewProcess(ctc)
 		return &StartState{}
+
 	} else if messageText == "Редактировать заказ" {
 		OrderChange{}.PreviewProcess(ctc)
 		return &OrderChange{}
@@ -593,6 +662,10 @@ func (state OrderCompleted) Process(ctc ChatContext, msg object.MessagesMessage)
 	} else if messageText == "Отменить заказ" {
 		OrderCancel{}.PreviewProcess(ctc)
 		return &OrderCancel{}
+
+	} else if messageText == "Выбрать конкретного исполнителя" {
+		ConfirmExecutor{}.PreviewProcess(ctc)
+		return &ConfirmExecutor{}
 
 	} else {
 		state.PreviewProcess(ctc)
@@ -607,7 +680,7 @@ func (state OrderCompleted) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
-		log.Println("Failed to get record")
+		log.Println("Failed to get record OrderCompleted")
 		log.Error(err)
 	}
 	output, err := repository.GetCompleteOrder(ctc.Db, ctc.User.VkID)
@@ -617,17 +690,19 @@ func (state OrderCompleted) PreviewProcess(ctc ChatContext) {
 	}
 	b.Message(output)
 	attachment, _ := repository.GetAttachments(ctc.Vk, ctc.Db, ctc.User.VkID)
-	log.Println(attachment)
+	log.Println("вывод - " + output)
 	b.Attachment(attachment)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
 	k.AddTextButton("Оформить заказ", "", "secondary")
 	k.AddTextButton("Редактировать заказ", "", "secondary")
 	k.AddTextButton("Отменить заказ", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Выбрать конкретного исполнителя", "", "secondary")
 	b.Keyboard(k)
 	_, err = ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
-		log.Println("Failed to get record")
+		log.Println("Failed to get record OrderCompleted 2")
 		log.Error(err)
 	}
 }

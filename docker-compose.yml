@@ -1,6 +1,22 @@
 version: "3.8" # версия вашего docker-compose
 services: # имеджи, которые запустятся по вашему желанию
+  todo-app:
+    build: ./
+    command: ./wait-for-postgres.sh db ./ordering-bot
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+    environment:
+      - DB_PASSWORD=vkbot_password
+      - DB_PORT=5432
+      - DB_USER=vkbot_user
+      - DB_PASS=vkbot_password
+      - DB_HOST=db
+      - DB_NAME=vkbot_db
+      - VK_TOKEN=vk1.a.xor1NCLq_CEWCtDdFOTsqYpSHtXWK9DCDqV2YbF8to4ZMw0bNgXyziEiOPz10AV6VmGNyIdKfP3b-PXcaJ-dfKTTwAhXlDLHl0mNffeXW3cFudt_eOHLfD9t6iKa3jV1io8018u4anxgd8SPFIld4qAyowXcoDO7jjOTML9elPGPosr7u092BdzE1wOTS-8w
   db: # название моего имеджа
+    restart: always
     image: postgres:12 # скачает image postgres 12 версии
     volumes: # часть настроек для хранения данных, пока для нас это не важно
       - type: volume
