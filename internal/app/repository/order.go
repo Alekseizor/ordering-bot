@@ -65,7 +65,7 @@ func GetCompleteOrder(Db *sqlx.DB, VkID int) (string, error) {
 	case "ChoiceTime", "CommentOrder", "ConfirmationOrder": //todo: На стейте TaskOrder при нажатии назад пишет второй вариант вместо первого (хз надо ли фиксить)
 		output = "Ваш заказ:\nВид работы - " + order.TypeOrder + "\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04")
 		break
-	case "TaskOrder", "EditType", "EditDiscipline", "EditDate", "EditTime", "EditTaskOrder", "EditCommentOrder", "OrderChange", "OrderCancel", "OrderCompleted":
+	case "TaskOrder", "ConfirmExecutor", "EditType", "EditDiscipline", "EditDate", "EditTime", "EditTaskOrder", "EditCommentOrder", "OrderChange", "OrderCancel", "OrderCompleted":
 		if order.CustomersComment != nil {
 			customerComment := *order.CustomersComment
 			output = "Проверьте заказ:\nВид работы - " + order.TypeOrder + "\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask + "\nКомментарий к заказу - " + customerComment //вывод заказа пользователя
@@ -160,6 +160,27 @@ func AddingExecutor(db *sqlx.DB, executorOrder ds.ExecutorOrder) error {
 		return err
 	}
 	return nil
+}
+
+func CheckExecutor(db *sqlx.DB, VkID int) (bool, error) {
+	var executorVKID int
+	orderID, err := GetIDOrder(db, VkID)
+	if err != nil {
+		log.WithError(err).Error("couldn't get an order")
+		return false, err
+	}
+
+	err = db.QueryRow("SELECT executor_vk_id FROM orders WHERE id=$1", orderID).Scan(&executorVKID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Println("No executor with vk_id founded")
+		} else {
+			log.Println(err)
+			log.Println("Query error")
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 func FinishOrder(db *sqlx.DB, orderID int, isExec bool) error {

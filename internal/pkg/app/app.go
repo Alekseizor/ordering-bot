@@ -47,7 +47,7 @@ func NewApp(ctx context.Context) (*App, error) {
 	// БД
 	db, err := sqlx.Connect("postgres", dsn.FromEnv())
 	if err != nil {
-		log.Println("nen")
+		log.Println("nen", err)
 		return nil, err
 	}
 	//starting long poll
@@ -146,6 +146,7 @@ func (a *App) Run(ctx context.Context) error {
 			(&(state.ConfirmationOrder{})).Name():            &(state.ConfirmationOrder{}),
 			(&(state.CommentOrder{})).Name():                 &(state.CommentOrder{}),
 			(&(state.TaskOrder{})).Name():                    &(state.TaskOrder{}),
+			(&(state.ConfirmExecutor{})).Name():              &(state.ConfirmExecutor{}),
 			(&(state.OrderCompleted{})).Name():               &(state.OrderCompleted{}),
 			(&(state.OrderCancel{})).Name():                  &(state.OrderCancel{}),
 			(&(state.OrderChange{})).Name():                  &(state.OrderChange{}),
