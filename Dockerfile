@@ -12,6 +12,7 @@ RUN chmod +x wait-for-postgres.sh
 
 
 RUN go mod download
-RUN go build -o ordering-bot ./cmd/migrate/main.go
+RUN go build -o ordering-bot-migrate ./cmd/migrate/main.go
 RUN go build -o ordering-bot ./cmd/vkbot/main.go
+CMD ["./ordering-bot-migrate"]
 CMD ["./ordering-bot"]
