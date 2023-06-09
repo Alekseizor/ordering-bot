@@ -119,8 +119,8 @@ func (state ChoiceDiscipline) Process(ctc ChatContext, msg object.MessagesMessag
 		err = repository.DeleteOrder(ctc.Db, ID)
 		if err != nil {
 			log.Println(err)
-			state.PreviewProcess(ctc)
-			return &ChoiceDiscipline{}
+			OrderType{}.PreviewProcess(ctc)
+			return &OrderType{}
 		}
 		OrderType{}.PreviewProcess(ctc)
 		return &OrderType{}
