@@ -24,10 +24,9 @@ func DistributionOrderExecutors(ctc ChatContext) error {
 		return err
 	}
 	for _, executor := range executorsDiscipline {
-		//todo: убрать комментарий ниже
-		//if executor == ctc.User.VkID {
-		//	continue
-		//}
+		if executor == ctc.User.VkID {
+			continue
+		}
 		b := params.NewMessagesSendBuilder()
 		b.RandomID(0)
 		output, err := repository.GetCompleteOrder(ctc.Db, ctc.User.VkID)
