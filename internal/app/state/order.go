@@ -108,9 +108,20 @@ type ChoiceDiscipline struct {
 }
 
 func (state ChoiceDiscipline) Process(ctc ChatContext, msg object.MessagesMessage) State {
-	ID, _ := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
+	ID, err := repository.GetIDOrder(ctc.Db, ctc.User.VkID)
+	if err != nil {
+		log.Println(err)
+		state.PreviewProcess(ctc)
+		return &ChoiceDiscipline{}
+	}
 	messageText := msg.Text
 	if messageText == "Назад" {
+		err = repository.DeleteOrder(ctc.Db, ID)
+		if err != nil {
+			log.Println(err)
+			state.PreviewProcess(ctc)
+			return &ChoiceDiscipline{}
+		}
 		OrderType{}.PreviewProcess(ctc)
 		return &OrderType{}
 	} else {

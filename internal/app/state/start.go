@@ -34,14 +34,14 @@ func (state StartState) Process(ctc ChatContext, msg object.MessagesMessage) Sta
 	if messageText == "Сделать заказ" || messageText == "1" {
 		OrderType{}.PreviewProcess(ctc)
 		return &OrderType{}
-	} else if messageText == "Стать исполнителем" || messageText == "5" {
+	} else if messageText == "Стать исполнителем" || messageText == "2" {
 		if ctc.User.VkID == config.FromContext(*ctc.Ctx).AdminID {
 			CabinetAdmin{}.PreviewProcess(ctc)
 			return &CabinetAdmin{}
 		}
 		BecomeExecutor{}.PreviewProcess(ctc)
 		return &BecomeExecutor{}
-	} else if messageText == "Мои заказы" || messageText == "6" {
+	} else if messageText == "Мои заказы" || messageText == "3" {
 		MyOrderState{}.PreviewProcess(ctc)
 		return &StartState{}
 	} else {
@@ -62,7 +62,7 @@ func (state StartState) PreviewProcess(ctc ChatContext) {
 	}
 	b = params.NewMessagesSendBuilder()
 	b.RandomID(0)
-	b.Message("1. Сделать заказ\n2. Связаться с исполнителем \n3. Оставить отзыв\n4. Сделать заказ через посредника\n5. Стать исполнителем\n6. Мои заказы")
+	b.Message("1. Сделать заказ\n2. Стать исполнителем\n3. Мои заказы")
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
