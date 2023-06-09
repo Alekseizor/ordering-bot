@@ -202,7 +202,7 @@ func FinishOrder(db *sqlx.DB, orderID int, isExec bool) error {
 }
 
 func DeleteOrder(Db *sqlx.DB, orderID int) error {
-	_, err := Db.Exec("DELETE FROM orders WHERE id='$1'", orderID)
+	_, err := Db.Exec("DELETE FROM orders WHERE id=$1", orderID)
 	if err != nil {
 		log.WithError(err).Error("failed to delete order")
 		return err
