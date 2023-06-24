@@ -54,7 +54,7 @@ func NewsletterGetDocs(ctx *context.Context, VK *api.VK, urls, titles []string) 
 	for i, val := range urls {
 		resp, err := http.Get(val)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 		upload, _ := VK.DocsGetMessagesUploadServer(api.Params{
 			"type":    "doc",
@@ -90,7 +90,7 @@ func NewsLetterGetImages(ctx *context.Context, VK *api.VK, urls []string) (strin
 	for _, val := range urls {
 		resp, err := http.Get(val)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 		upload, _ := VK.PhotosGetMessagesUploadServer(api.Params{
 			"peer_id": config.FromContext(*ctx).AdminID,

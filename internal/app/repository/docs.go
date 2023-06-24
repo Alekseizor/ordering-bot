@@ -88,7 +88,7 @@ func GetDocs(VK *api.VK, urls, titles []string, VkID int) (string, error) {
 	for i, val := range urls {
 		resp, err := http.Get(val)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 		upload, _ := VK.DocsGetMessagesUploadServer(api.Params{
 			"type":    "doc",
@@ -123,7 +123,7 @@ func GetImages(VK *api.VK, urls []string, VkID int) (string, error) {
 	for _, val := range urls {
 		resp, err := http.Get(val)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 		upload, _ := VK.PhotosGetMessagesUploadServer(api.Params{
 			"peer_id": VkID,
