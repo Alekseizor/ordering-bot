@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS requisites
 );
 -- +goose StatementEnd
 INSERT INTO requisites (requisites)
-VALUES ('Сбербанк:\n5469 3800 6905 9201\nТинькофф:\n5536 9139 6190 8197\nВладимир Михайлович К.');
+VALUES ('Сбербанк: 5469 3800 6905 9201 Тинькофф: 5536 9139 6190 8197 Владимир Михайлович К.');
 -- +goose Down
 -- +goose StatementBegin
 

@@ -16,7 +16,9 @@ func GetOrderAndVkID(ctc state.ChatContext, msg object.MessagesMessage) (order, 
 	chat, err := ctc.Vk.MessagesGetConversationsByID(api.Params{
 		"peer_ids": msg.PeerID,
 	})
-	title := strings.Split(chat.Items[0].ChatSettings.Title, "_")
+
+	titleWithoutPrefix := strings.TrimPrefix(chat.Items[0].ChatSettings.Title, "Заказ номер №")
+	title := strings.Split(titleWithoutPrefix, "_")
 	return title[0], title[1], nil
 }
 
@@ -30,6 +32,9 @@ func (state ForwardMessage) Process(ctc state.ChatContext, msg object.MessagesMe
 	orderID, vkId, _ := GetOrderAndVkID(ctc, msg)
 	vkid, _ := strconv.Atoi(vkId)
 	orderId, _ := strconv.Atoi(orderID)
+	order, _ := repository.GetOrder(ctc.Db, orderId)
+	idExec, _ := repository.GetExecutor(ctc.Db, int(*order.ExecutorVkID))
+	idExecutor := strconv.Itoa(idExec.Id)
 	isExecutor, _ := repository.IsExecutorInOrder(ctc.Db, orderId, vkid)
 	b := params.NewMessagesSendBuilder()
 	b.RandomID(0)
@@ -45,6 +50,20 @@ func (state ForwardMessage) Process(ctc state.ChatContext, msg object.MessagesMe
 		log.Println("Failed to send message")
 		log.Error(err)
 	}
+
+	if !isExecutor {
+		b.RandomID(0)
+		req := repository.GetRequisites(ctc.Db)
+		message = "Реквизиты для оплаты: " + req + "\nID вашего исполнителя - " + idExecutor
+		b.Message(message)
+		b.PeerID(ctc.User.VkID)
+		_, err := ctc.Vk.MessagesSend(b.Params)
+		if err != nil {
+			log.Println("Failed to send message")
+			log.Error(err)
+		}
+	}
+
 	return ConversationSend{}
 
 }

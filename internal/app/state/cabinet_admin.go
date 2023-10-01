@@ -1,8 +1,10 @@
 package state
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
+	"github.com/Alekseizor/ordering-bot/internal/app/excel"
 	"github.com/Alekseizor/ordering-bot/internal/app/repository"
 	"github.com/SevereCloud/vksdk/v2/api/params"
 	"github.com/SevereCloud/vksdk/v2/object"
@@ -22,6 +24,9 @@ func (state CabinetAdmin) Process(ctc ChatContext, msg object.MessagesMessage) S
 	if messageText == "Выгрузка таблицы заказов" {
 		UnloadTable{}.PreviewProcess(ctc)
 		return &UnloadTable{}
+	} else if messageText == "Выгрузка таблицы исполнителей" {
+		UnloadTableExec{}.PreviewProcess(ctc)
+		return &UnloadTableExec{}
 	} else if messageText == "Назначить исполнителя" {
 		AddExecutor{}.PreviewProcess(ctc)
 		return &AddExecutor{}
@@ -51,6 +56,8 @@ func (state CabinetAdmin) PreviewProcess(ctc ChatContext) {
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
 	k.AddTextButton("Выгрузка таблицы заказов", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Выгрузка таблицы исполнителей", "", "secondary")
 	k.AddRow()
 	k.AddTextButton("Назначить исполнителя", "", "secondary")
 	k.AddRow()
@@ -116,6 +123,75 @@ func (state UnloadTable) PreviewProcess(ctc ChatContext) {
 
 func (state UnloadTable) Name() string {
 	return "UnloadTable"
+}
+
+// ////////////////////////////////////////////////////////
+type UnloadTableExec struct {
+}
+
+func (state UnloadTableExec) Process(ctc ChatContext, msg object.MessagesMessage) State {
+	messageText := msg.Text
+	if messageText == "Да" {
+		table, err := excel.CreateExecTable(ctc.Db)
+		if err != nil {
+			log.Println(err)
+			state.PreviewProcess(ctc)
+			return &CabinetAdmin{}
+		}
+		tableBuffer, err := table.WriteToBuffer()
+		if err != nil {
+			log.Println(err)
+			state.PreviewProcess(ctc)
+			return &CabinetAdmin{}
+		}
+		tableBytes := tableBuffer.Bytes()
+		b := params.NewMessagesSendBuilder()
+		b.RandomID(0)
+		b.Message("Ваша таблица:")
+		b.PeerID(ctc.User.VkID)
+		doc, err := ctc.Vk.UploadMessagesDoc(ctc.User.VkID, "doc", "Book2.xlsx", "", bytes.NewReader(tableBytes))
+		if err != nil {
+			log.Error(err)
+			state.PreviewProcess(ctc)
+			return &CabinetAdmin{}
+		}
+		b.Attachment(doc.Type + strconv.Itoa(doc.Doc.OwnerID) + "_" + strconv.Itoa(doc.Doc.ID))
+		_, err = ctc.Vk.MessagesSend(b.Params)
+		if err != nil {
+			log.Println("Failed to get record")
+			log.Error(err)
+		}
+		CabinetAdmin{}.PreviewProcess(ctc)
+		return &CabinetAdmin{}
+	} else if messageText == "Назад" {
+		CabinetAdmin{}.PreviewProcess(ctc)
+		return &CabinetAdmin{}
+	} else {
+		state.PreviewProcess(ctc)
+		return &UnloadTableExec{}
+	}
+}
+
+func (state UnloadTableExec) PreviewProcess(ctc ChatContext) {
+	b := params.NewMessagesSendBuilder()
+	b.RandomID(0)
+	b.Message("Выгрузить таблицу?")
+	b.PeerID(ctc.User.VkID)
+	k := &object.MessagesKeyboard{}
+	k.AddRow()
+	k.AddTextButton("Да", "", "secondary")
+	k.AddRow()
+	k.AddTextButton("Назад", "", "secondary")
+	b.Keyboard(k)
+	_, err := ctc.Vk.MessagesSend(b.Params)
+	if err != nil {
+		log.Println("Failed to get record")
+		log.Error(err)
+	}
+}
+
+func (state UnloadTableExec) Name() string {
+	return "UnloadTableExec"
 }
 
 // ////////////////////////////////////////////////////////

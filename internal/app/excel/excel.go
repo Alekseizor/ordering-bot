@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Alekseizor/ordering-bot/internal/app/ds"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 	"github.com/xuri/excelize/v2"
 	"strconv"
@@ -125,6 +126,70 @@ func CreateRespTable(db *sqlx.DB, firstDateStr string, secondDateStr string, clo
 		//f.SetCellValue("Sheet1", "K1", order.)
 		//f.SetCellValue("Sheet1", "L1", "Статус оплаты")
 		if err := f.SaveAs("Book1.xlsx"); err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		numberRow++
+	}
+	return f, err
+}
+
+func CreateExecTable(db *sqlx.DB) (*excelize.File, error) {
+	var rows *sql.Rows
+	var err error
+	var requestStr string
+	var executor ds.Executor
+
+	f := excelize.NewFile() //создали новый лист
+	f.SetCellValue("Sheet1", "A1", "ID исполнителя")
+	f.SetCellValue("Sheet1", "B1", "VK_ID исполнителя")
+	f.SetCellValue("Sheet1", "C1", "Дисциплины")
+	f.SetCellValue("Sheet1", "D1", "Процент исполнителя")
+	f.SetCellValue("Sheet1", "E1", "Рейтинг исполнителя")
+	f.SetCellValue("Sheet1", "F1", "Количество оценок")
+	f.SetCellValue("Sheet1", "G1", "Прибыль")
+	f.SetCellValue("Sheet1", "H1", "Количество заказов")
+	f.SetCellValue("Sheet1", "I1", "Реквизиты")
+
+	requestStr = fmt.Sprintf("SELECT * FROM executors ")
+	rows, err = db.Query(requestStr)
+	defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	var requisite string
+
+	numberRow := 2
+	for rows.Next() {
+		var DisciplinesID []sql.NullInt64
+		if err := rows.Scan(&executor.Id, &executor.VkID, pq.Array(&DisciplinesID), &executor.PercentExecutor, &executor.Rating, &executor.AmountRating, &executor.Profit, &executor.AmountOrders, &executor.Requisite); err != nil {
+			log.Println(err)
+			return nil, err
+		}
+
+		var disciplines []int64
+		for _, val := range DisciplinesID {
+			disciplines = append(disciplines, val.Int64)
+		}
+		if executor.Requisite == nil {
+			requisite = "Исполнитель не оставил свои реквизиты"
+		} else {
+			requisite = *executor.Requisite
+		}
+
+		numberRowStr := strconv.Itoa(numberRow)
+		f.SetCellValue("Sheet1", "A"+numberRowStr, executor.Id)
+		f.SetCellValue("Sheet1", "B"+numberRowStr, executor.VkID)
+		f.SetCellValue("Sheet1", "C"+numberRowStr, disciplines)
+		f.SetCellValue("Sheet1", "D"+numberRowStr, executor.PercentExecutor)
+		f.SetCellValue("Sheet1", "E"+numberRowStr, executor.Rating)
+		f.SetCellValue("Sheet1", "F"+numberRowStr, executor.AmountRating)
+		f.SetCellValue("Sheet1", "G"+numberRowStr, executor.Profit)
+		f.SetCellValue("Sheet1", "H"+numberRowStr, executor.AmountOrders)
+		f.SetCellValue("Sheet1", "I"+numberRowStr, requisite)
+
+		if err := f.SaveAs("Book2.xlsx"); err != nil {
 			log.Println(err)
 			return nil, err
 		}

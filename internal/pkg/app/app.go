@@ -161,6 +161,7 @@ func (a *App) Run(ctx context.Context) error {
 			(&(state.WriteAdmin{})).Name():                   &(state.WriteAdmin{}),
 			(&(state.CabinetAdmin{})).Name():                 &(state.CabinetAdmin{}),
 			(&(state.UnloadTable{})).Name():                  &(state.UnloadTable{}),
+			(&(state.UnloadTableExec{})).Name():              &(state.UnloadTableExec{}),
 			(&(state.AddExecutor{})).Name():                  &(state.AddExecutor{}),
 			(&(state.AddExecID{})).Name():                    &(state.AddExecID{}),
 			(&(state.AddExecDisciplines{})).Name():           &(state.AddExecDisciplines{}),
