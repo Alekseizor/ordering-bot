@@ -70,7 +70,7 @@ func (state SelectionDateClear) PreviewProcess(ctc ChatContext) {
 	k.AddRow()
 	k.AddTextButton("По дате(с ДД.ММ.ГГ до ДД.ММ.ГГ)", "", "secondary")
 	k.AddRow()
-	k.AddTextButton("Назад", "", "secondary")
+	k.AddTextButton("Назад", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -111,7 +111,7 @@ func (state InputFirstDateClear) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Назад", "", "secondary")
+	k.AddTextButton("Назад", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -202,7 +202,7 @@ func (state InputSecondDateClear) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Назад", "", "secondary")
+	k.AddTextButton("Назад", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {

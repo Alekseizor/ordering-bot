@@ -40,7 +40,7 @@ func (state OrderType) Process(ctc ChatContext, msg object.MessagesMessage) Stat
 func (state OrderType) PreviewProcess(ctc ChatContext) {
 	b := params.NewMessagesSendBuilder()
 	b.RandomID(0)
-	b.Message("Выберите вид работы:")
+	b.Message("✏Выберите вид работы:")
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
@@ -52,7 +52,7 @@ func (state OrderType) PreviewProcess(ctc ChatContext) {
 	k.AddRow()
 	k.AddTextButton("Экзамен", "", "secondary")
 	k.AddRow()
-	k.AddTextButton("Назад в главное меню", "", "secondary")
+	k.AddTextButton("Назад в главное меню", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -85,13 +85,13 @@ func (state OrderState) Process(ctc ChatContext, msg object.MessagesMessage) Sta
 func (state OrderState) PreviewProcess(ctc ChatContext) {
 	b := params.NewMessagesSendBuilder()
 	b.RandomID(0)
-	b.Message("Выберите дисциплину, нажав на команду «Выбор дисциплины»")
+	b.Message("📌Выберите дисциплину, нажав на команду «Выбор дисциплины»")
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
 	k.AddTextButton("Выбор дисциплины", "", "secondary")
 	k.AddRow()
-	k.AddTextButton("Назад в главное меню", "", "secondary")
+	k.AddTextButton("Назад в главное меню", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -149,7 +149,7 @@ func (state ChoiceDiscipline) Process(ctc ChatContext, msg object.MessagesMessag
 func (state ChoiceDiscipline) PreviewProcess(ctc ChatContext) {
 	b := params.NewMessagesSendBuilder()
 	b.RandomID(0)
-	b.Message("Отправь номер нужной дисциплины")
+	b.Message("📌Отправь номер нужной дисциплины")
 	b.PeerID(ctc.User.VkID)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -162,7 +162,7 @@ func (state ChoiceDiscipline) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Назад", "", "secondary")
+	k.AddTextButton("Назад", "", "negative")
 	b.Keyboard(k)
 	_, err = ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -314,7 +314,7 @@ func (state ChoiceDate) Process(ctc ChatContext, msg object.MessagesMessage) Sta
 func (state ChoiceDate) PreviewProcess(ctc ChatContext) {
 	b := params.NewMessagesSendBuilder()
 	b.RandomID(0)
-	b.Message("Выберите дату выполнения заказа")
+	b.Message("📅Выберите дату выполнения заказа")
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
@@ -411,7 +411,7 @@ func (state ChoiceTime) Process(ctc ChatContext, msg object.MessagesMessage) Sta
 func (state ChoiceTime) PreviewProcess(ctc ChatContext) {
 	b := params.NewMessagesSendBuilder()
 	b.RandomID(0)
-	b.Message("Введите время выполнения заказа в формате ЧЧ:ММ")
+	b.Message("⏰Введите время выполнения заказа в формате ЧЧ:ММ")
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
@@ -515,7 +515,7 @@ func (state CommentOrder) PreviewProcess(ctc ChatContext) {
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
 	//k.AddTextButton("Отправить комментарий", "", "secondary")
-	k.AddTextButton("Назад", "", "secondary")
+	k.AddTextButton("Назад", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -540,11 +540,6 @@ func (state TaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) Stat
 
 	attachments := fullMSG.Items[0].Attachments
 	if attachments != nil {
-		//for _, val := range attachments {
-		//	if val.Type != "doc" || val.Type != "photo" {
-		//
-		//	}
-		//}
 		repository.WriteUrl(ctc.Db, ctc.User.VkID, attachments)
 	}
 
@@ -567,11 +562,11 @@ func (state TaskOrder) Process(ctc ChatContext, msg object.MessagesMessage) Stat
 func (state TaskOrder) PreviewProcess(ctc ChatContext) {
 	b := params.NewMessagesSendBuilder()
 	b.RandomID(0)
-	b.Message("Отправьте фото,текстовое описание или документ задания (любой формат) одним сообщением!")
+	b.Message("📎Отправьте фото,текстовое описание или документ задания (любой формат) одним сообщением!")
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Назад", "", "secondary")
+	k.AddTextButton("Назад", "", "negative")
 	b.Keyboard(k)
 
 	_, err := ctc.Vk.MessagesSend(b.Params)
@@ -639,7 +634,7 @@ func (state ConfirmExecutor) PreviewProcess(ctc ChatContext) {
 	b.Message("Введите ID исполнителя")
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Назад", "", "secondary")
+	k.AddTextButton("Назад", "", "negative")
 	b.Keyboard(k)
 	b.PeerID(ctc.User.VkID)
 	_, err := ctc.Vk.MessagesSend(b.Params)
@@ -755,8 +750,8 @@ func (state OrderCancel) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Да", "", "secondary")
-	k.AddTextButton("Нет", "", "secondary")
+	k.AddTextButton("Да", "", "positive")
+	k.AddTextButton("Нет", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -820,7 +815,7 @@ func (state OrderChange) PreviewProcess(ctc ChatContext) {
 	//k.AddRow()
 	k.AddTextButton("Комментарий к заказу", "", "secondary")
 	k.AddRow()
-	k.AddTextButton("Назад", "", "secondary")
+	k.AddTextButton("Назад", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {

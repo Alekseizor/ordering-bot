@@ -18,7 +18,7 @@ func GetLink(ctc ChatContext, msg object.MessagesMessage, vkID int, isExec bool)
 	}
 
 	chatID, err := ctc.Vk.MessagesCreateChat(api.Params{
-		"title":    "Заказ номер №" + strconv.Itoa(order.OrderID) + "_" + strconv.Itoa(vkID),
+		"title":    "Заказ номер №" + strconv.Itoa(order.OrderID) + "_" + strconv.Itoa(vkID) + "⚠",
 		"user_ids": vkID,
 		"group_id": msg.PeerID,
 	})

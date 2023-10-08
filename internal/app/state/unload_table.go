@@ -65,7 +65,7 @@ func (state SelectionDateUnload) PreviewProcess(ctc ChatContext) {
 	k.AddRow()
 	k.AddTextButton("За день", "", "secondary")
 	k.AddRow()
-	k.AddTextButton("Назад", "", "secondary")
+	k.AddTextButton("Назад", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -106,7 +106,7 @@ func (state InputFirstDateUnload) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Назад", "", "secondary")
+	k.AddTextButton("Назад", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -169,7 +169,7 @@ func (state InputSecondDateUnload) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Назад", "", "secondary")
+	k.AddTextButton("Назад", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -239,11 +239,11 @@ func (state SelectionAllOrPersonalUnload) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Да", "", "secondary")
+	k.AddTextButton("Да", "", "positive")
 	k.AddRow()
-	k.AddTextButton("Нет", "", "secondary")
+	k.AddTextButton("Нет", "", "negative")
 	k.AddRow()
-	k.AddTextButton("Назад", "", "secondary")
+	k.AddTextButton("Назад", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -316,7 +316,7 @@ func (state PersonalUnload) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Назад", "", "secondary")
+	k.AddTextButton("Назад", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {

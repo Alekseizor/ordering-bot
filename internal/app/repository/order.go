@@ -68,10 +68,10 @@ func GetCompleteOrder(Db *sqlx.DB, VkID int) (string, error) {
 	case "TaskOrder", "ConfirmExecutor", "EditType", "EditDiscipline", "EditDate", "EditTime", "EditTaskOrder", "EditCommentOrder", "OrderChange", "OrderCancel", "OrderCompleted":
 		if order.CustomersComment != nil {
 			customerComment := *order.CustomersComment
-			output = "Проверьте заказ:\nВид работы - " + order.TypeOrder + "\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask + "\nКомментарий к заказу - " + customerComment //вывод заказа пользователя
+			output = "Проверьте заказ:\n✏Вид работы - " + order.TypeOrder + "\n📌Дисциплина - " + disciplineName + "\n📅Дата выполнения - " + dateFinish + "\n⏰Время выполнения - " + order.DateFinish.Format("15:04") + "\n📎Информация по заказу - " + orderTask + "\n📃Комментарий к заказу - " + customerComment //вывод заказа пользователя
 			break
 		} else {
-			output = "Проверьте заказ:\nВид работы - " + order.TypeOrder + "\nДисциплина - " + disciplineName + "\nДата выполнения - " + dateFinish + "\nВремя выполнения - " + order.DateFinish.Format("15:04") + "\nИнформация по заказу - " + orderTask //вывод заказа пользователя
+			output = "Проверьте заказ:\n✏Вид работы - " + order.TypeOrder + "\n📌Дисциплина - " + disciplineName + "\n📅Дата выполнения - " + dateFinish + "\n⏰Время выполнения - " + order.DateFinish.Format("15:04") + "\n📎Информация по заказу - " + orderTask //вывод заказа пользователя
 			break
 		}
 	default:

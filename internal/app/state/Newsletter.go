@@ -53,7 +53,7 @@ func (state Newsletter) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Назад", "", "secondary")
+	k.AddTextButton("Назад", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -95,9 +95,9 @@ func (state NewsletterConfirmation) PreviewProcess(ctc ChatContext) {
 	b.Message("Вы уверены, что хотите отправить сообщение?\n" + message)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Да", "", "secondary")
+	k.AddTextButton("Да", "", "positive")
 	k.AddRow()
-	k.AddTextButton("Нет", "", "secondary")
+	k.AddTextButton("Нет", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -200,9 +200,9 @@ func (state NewsletterSend) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Да", "", "secondary")
+	k.AddTextButton("Да", "", "positive")
 	k.AddRow()
-	k.AddTextButton("Нет", "", "secondary")
+	k.AddTextButton("Нет", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {

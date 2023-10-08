@@ -13,7 +13,7 @@ import (
 	"unicode/utf8"
 )
 
-/////////////////////////////////////////////////////////
+// ///////////////////////////////////////////////////////
 type EditType struct {
 }
 
@@ -53,7 +53,7 @@ func (state EditType) PreviewProcess(ctc ChatContext) {
 	k.AddRow()
 	k.AddTextButton("Экзамен", "", "secondary")
 	k.AddRow()
-	k.AddTextButton("Назад к редактированию", "", "secondary")
+	k.AddTextButton("Назад к редактированию", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -65,7 +65,7 @@ func (state EditType) Name() string {
 	return "EditType"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type EditDiscipline struct {
 }
 
@@ -113,7 +113,7 @@ func (state EditDiscipline) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Назад к редактированию", "", "secondary")
+	k.AddTextButton("Назад к редактированию", "", "negative")
 	b.Keyboard(k)
 	_, err = ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -126,7 +126,7 @@ func (state EditDiscipline) Name() string {
 	return "EditDiscipline"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type EditDate struct {
 }
 
@@ -284,7 +284,7 @@ func (state EditDate) PreviewProcess(ctc ChatContext) {
 	k.AddTextButton("Сейчас", "", "secondary")
 	k.AddTextButton("Свой вариант", "", "secondary")
 	k.AddRow()
-	k.AddTextButton("Назад к редактированию", "", "secondary")
+	k.AddTextButton("Назад к редактированию", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -296,7 +296,7 @@ func (state EditDate) Name() string {
 	return "EditDate"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type EditTime struct {
 }
 
@@ -363,7 +363,7 @@ func (state EditTime) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Назад к редактированию", "", "secondary")
+	k.AddTextButton("Назад к редактированию", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -375,7 +375,7 @@ func (state EditTime) Name() string {
 	return "EditTime"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type EditTaskOrder struct {
 }
 
@@ -417,7 +417,7 @@ func (state EditTaskOrder) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Назад к редактированию", "", "secondary")
+	k.AddTextButton("Назад к редактированию", "", "negative")
 	b.Keyboard(k)
 
 	_, err := ctc.Vk.MessagesSend(b.Params)
@@ -430,7 +430,7 @@ func (state EditTaskOrder) Name() string {
 	return "EditTaskOrder"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type EditCommentOrder struct {
 }
 
@@ -464,7 +464,7 @@ func (state EditCommentOrder) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Назад к редактированию", "", "secondary")
+	k.AddTextButton("Назад к редактированию", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {

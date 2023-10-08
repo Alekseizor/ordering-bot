@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type BecomeExecutor struct {
 }
 
@@ -45,7 +45,7 @@ func (state BecomeExecutor) PreviewProcess(ctc ChatContext) {
 			b.PeerID(ctc.User.VkID)
 			k := &object.MessagesKeyboard{}
 			k.AddRow()
-			k.AddTextButton("Назад", "", "secondary")
+			k.AddTextButton("Назад", "", "negative")
 			b.Keyboard(k)
 			_, err = ctc.Vk.MessagesSend(b.Params)
 			if err != nil {
@@ -69,7 +69,7 @@ func (state BecomeExecutor) PreviewProcess(ctc ChatContext) {
 		k.AddRow()
 		k.AddTextButton("Написать администратору", "", "secondary")
 		k.AddRow()
-		k.AddTextButton("Назад", "", "secondary")
+		k.AddTextButton("Назад", "", "negative")
 		b.Keyboard(k)
 		_, err = ctc.Vk.MessagesSend(b.Params)
 		if err != nil {
@@ -83,7 +83,7 @@ func (state BecomeExecutor) Name() string {
 	return "BecomeExecutor"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type ExecHistoryOrders struct {
 }
 
@@ -139,7 +139,7 @@ func (state ExecHistoryOrders) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Назад", "", "secondary")
+	k.AddTextButton("Назад", "", "negative")
 	b.Keyboard(k)
 	_, err = ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -152,7 +152,7 @@ func (state ExecHistoryOrders) Name() string {
 	return "ExecHistoryOrders"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type WriteAdmin struct {
 }
 
@@ -175,7 +175,7 @@ func (state WriteAdmin) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Назад", "", "secondary")
+	k.AddTextButton("Назад", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -188,7 +188,7 @@ func (state WriteAdmin) Name() string {
 	return "WriteAdmin"
 }
 
-//////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////
 type ChangeRequisiteExecutor struct {
 }
 
@@ -223,7 +223,7 @@ func (state ChangeRequisiteExecutor) PreviewProcess(ctc ChatContext) {
 	b.PeerID(ctc.User.VkID)
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Назад", "", "secondary")
+	k.AddTextButton("Назад", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {

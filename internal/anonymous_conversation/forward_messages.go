@@ -17,9 +17,10 @@ func GetOrderAndVkID(ctc state.ChatContext, msg object.MessagesMessage) (order, 
 		"peer_ids": msg.PeerID,
 	})
 
-	titleWithoutPrefix := strings.TrimPrefix(chat.Items[0].ChatSettings.Title, "Заказ номер №")
-	title := strings.Split(titleWithoutPrefix, "_")
-	return title[0], title[1], nil
+	title := strings.TrimPrefix(chat.Items[0].ChatSettings.Title, "Заказ номер №")
+	title = strings.TrimSuffix(title, "⚠")
+	res := strings.Split(title, "_")
+	return res[0], res[1], nil
 }
 
 // ////////////////////////////////////////////////////////
@@ -184,6 +185,23 @@ func (state FinishOrderCheck) Process(ctc state.ChatContext, msg object.Messages
 		orderId, _ := strconv.Atoi(orderID)
 		isExecutor, _ := repository.IsExecutorInOrder(ctc.Db, orderId, vkid)
 		_ = repository.FinishOrder(ctc.Db, orderId, isExecutor)
+		chat, err := ctc.Vk.MessagesGetConversationsByID(api.Params{
+			"peer_ids": msg.PeerID,
+		})
+		chatID, err := repository.GetConversationID(ctc.Db, orderId, !isExecutor)
+		if err != nil {
+			log.Println("Can`t find conversation ID")
+		}
+		title := strings.TrimSuffix(chat.Items[0].ChatSettings.Title, "⚠")
+		_, err = ctc.Vk.MessagesEditChat(api.Params{
+			"chat_id": chatID - 2000000000,
+			"title":   title + "✅",
+		})
+		if err != nil {
+			log.Println("Failed to edit chat title")
+			log.Println(chatID)
+			log.Error(err)
+		}
 		FinishOrder{}.PreviewProcess(ctc)
 		return FinishOrder{}
 	} else if messageText == "Нет" || strings.Contains(messageText, "] Нет") {
@@ -217,9 +235,9 @@ func (state FinishOrderCheck) PreviewProcess(ctc state.ChatContext) {
 	b.Message("Вы уверены, что хотите завершить заказ?")
 	k := &object.MessagesKeyboard{}
 	k.AddRow()
-	k.AddTextButton("Да", "", "secondary")
+	k.AddTextButton("Да", "", "positive")
 	k.AddRow()
-	k.AddTextButton("Нет", "", "secondary")
+	k.AddTextButton("Нет", "", "negative")
 	b.Keyboard(k)
 	_, err := ctc.Vk.MessagesSend(b.Params)
 	if err != nil {
@@ -237,7 +255,6 @@ type FinishOrder struct {
 }
 
 func (state FinishOrder) Process(ctc state.ChatContext, msg object.MessagesMessage) state.State {
-
 	state.PreviewProcess(ctc)
 	return FinishOrder{}
 }
