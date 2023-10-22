@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS offers
     offer_id       serial PRIMARY KEY,
     executor_vk_id int not null,
     order_id       int not null,
-    price          bigint CHECK ( price > 0 )
+    price          bigint CHECK ( price > 0 )  DEFAULT(1)
 );
 -- +goose StatementEnd
 
